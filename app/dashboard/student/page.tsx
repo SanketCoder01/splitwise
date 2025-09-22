@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../../../lib/supabase'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
   User, 
@@ -9,6 +11,7 @@ import {
   LogOut,
   Shield,
   FileText,
+  Lock,
   AlertCircle,
   CheckCircle,
   Clock,
@@ -29,6 +32,18 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
+import GovernmentHeader from '../../../components/shared/GovernmentHeader'
+import ApplicationsPage from '../../../components/dashboard/ApplicationsPage'
+import ChangePasswordPage from '../../../components/dashboard/ChangePasswordPage'
+import DashboardPage from '../../../components/dashboard/DashboardPage'
+import DocumentVerificationPage from '../../../components/dashboard/DocumentVerificationPage'
+import InternshipOpportunitiesPage from '../../../components/dashboard/InternshipOpportunitiesPage'
+import MyCurrentStatusPage from '../../../components/dashboard/MyCurrentStatusPage'
+import MyInternshipPage from '../../../components/dashboard/MyInternshipPage'
+import NewsEventsPage from '../../../components/dashboard/NewsEventsPage'
+import ProfileManagementPage from '../../../components/dashboard/ProfileManagementPage'
+import ReferFriendPage from '../../../components/dashboard/ReferFriendPage'
+import SettingsPage from '../../../components/dashboard/SettingsPage'
 
 interface NotificationItem {
   id: string
@@ -48,8 +63,10 @@ interface GrievanceStatus {
 }
 
 export default function PMInternshipPortal() {
-  const [activeTab, setActiveTab] = useState('my-current-status')
-  const [showNotifications, setShowNotifications] = useState(true)
+  const [activeTab, setActiveTab] = useState('profile')
+  const [profileCompleted, setProfileCompleted] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const router = useRouter()
 
   // Mock data
   const grievanceStatus: GrievanceStatus = {
@@ -58,36 +75,6 @@ export default function PMInternshipPortal() {
     clarificationAsked: 0,
     documentsAsked: 0
   }
-
-  const notifications: NotificationItem[] = [
-    {
-      id: '1',
-      title: 'Action Required - How to Join after Accepting Your PM Inter...',
-      description: 'How to Join after you have accepted your offer letter. 1...',
-      date: 'June 2, 2025',
-      time: '14:42',
-      type: 'action',
-      isNew: true
-    },
-    {
-      id: '2', 
-      title: 'Action Required - How to Accept Your PM Internship Offer',
-      description: 'Dear Candidates, To accept your internship offer, please fol...',
-      date: 'June 2, 2025',
-      time: '14:42',
-      type: 'action',
-      isNew: true
-    },
-    {
-      id: '3',
-      title: 'Now check the status of your Aadhaar-seeded bank account dir...',
-      description: '',
-      date: '',
-      time: '',
-      type: 'info',
-      isNew: false
-    }
-  ]
 
   const navigationTabs = [
     { id: 'internship', label: 'Internship', icon: Building },
@@ -100,6 +87,59 @@ export default function PMInternshipPortal() {
     { id: 'my-shared-portal', label: 'My Shared Portal', icon: ExternalLink }
   ]
 
+  // Check profile completion status
+  useEffect(() => {
+    const checkProfileCompletion = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+          
+          if (profile) {
+            setUserProfile(profile)
+            // Check if profile is complete (all required fields filled)
+            const isComplete = profile.full_name && 
+                             profile.phone && 
+                             profile.education_level && 
+                             profile.skills && 
+                             profile.profile_completion >= 85
+            setProfileCompleted(isComplete)
+            
+            if (isComplete) {
+              setActiveTab('dashboard')
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking profile:', error)
+      }
+    }
+    
+    checkProfileCompletion()
+  }, [])
+
+  const handleTabClick = (tabId: string) => {
+    if (!profileCompleted && tabId !== 'profile') {
+      toast.error('Please complete your profile first to access other features')
+      return
+    }
+    setActiveTab(tabId)
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      toast.success('Signed out successfully')
+      router.push('/login')
+    } catch (error) {
+      toast.error('Error signing out')
+    }
+  }
+
   const statusTabs = [
     { id: 'my-current-status', label: 'My Current Status', active: true },
     { id: 'internship-opportunities', label: 'Internship Opportunities', active: false },
@@ -111,88 +151,274 @@ export default function PMInternshipPortal() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="w-full px-4">
-          {/* Top Header */}
-          <div className="flex items-center justify-between py-3 border-b border-gray-200 w-full">
-            <div className="flex items-center space-x-6 flex-1">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
-                  <Shield className="w-8 h-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h1 className="text-lg font-bold text-gray-800">MINISTRY OF EDUCATION</h1>
-                  <p className="text-xs text-gray-600">INTERNSHIP</p>
-                </div>
+      <GovernmentHeader showNavigation={true} showUserActions={true} />
+
+      <div className="w-full px-0 py-6">
+        <div className="grid lg:grid-cols-12 gap-0">
+          {/* Left Sidebar - Navigation Menu */}
+          <div className="lg:col-span-3 bg-gray-50 min-h-screen">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-white h-full shadow-lg border-r border-gray-200"
+            >
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-orange-100">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                  <Home className="w-5 h-5 mr-2 text-orange-600" />
+                  Student Portal
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">Navigate through your dashboard</p>
               </div>
-            </div>
-            
-            <div className="flex items-center space-x-6">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-800">School</p>
+              
+              <div className="p-4">
+                <nav className="space-y-2">
+                  {/* A-Z Organized Menu Items */}
+                  
+                  {/* A */}
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleTabClick('applications')}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      activeTab === 'applications'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : !profileCompleted 
+                          ? 'text-gray-400 cursor-not-allowed bg-gray-100'
+                          : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
+                    }`}
+                  >
+                    <FileText className="w-5 h-5 mr-3" />
+                    Applications
+                    {!profileCompleted && <Lock className="w-4 h-4 ml-auto" />}
+                  </motion.button>
+
+                  {/* D */}
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleTabClick('dashboard')}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      activeTab === 'dashboard'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : !profileCompleted 
+                          ? 'text-gray-400 cursor-not-allowed bg-gray-100'
+                          : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
+                    }`}
+                  >
+                    <Home className="w-5 h-5 mr-3" />
+                    Dashboard
+                    {!profileCompleted && <Lock className="w-4 h-4 ml-auto" />}
+                  </motion.button>
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('document-verification')}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      activeTab === 'document-verification'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
+                    }`}
+                  >
+                    <Shield className="w-5 h-5 mr-3" />
+                    Document Verification
+                  </motion.button>
+
+                  {/* I */}
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('internship-opportunities')}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      activeTab === 'internship-opportunities'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
+                    }`}
+                  >
+                    <Building className="w-5 h-5 mr-3" />
+                    Internship Opportunities
+                  </motion.button>
+
+                  {/* M */}
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('my-current-status')}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      activeTab === 'my-current-status'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
+                    }`}
+                  >
+                    <User className="w-5 h-5 mr-3" />
+                    My Current Status
+                  </motion.button>
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('my-internship')}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      activeTab === 'my-internship'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
+                    }`}
+                  >
+                    <Award className="w-5 h-5 mr-3" />
+                    My Internship
+                  </motion.button>
+
+                  {/* N */}
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('news-events')}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      activeTab === 'news-events'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
+                    }`}
+                  >
+                    <Calendar className="w-5 h-5 mr-3" />
+                    News & Events
+                  </motion.button>
+
+                  {/* P */}
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('profile')}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      activeTab === 'profile'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
+                    }`}
+                  >
+                    <User className="w-5 h-5 mr-3" />
+                    Profile Management
+                  </motion.button>
+
+                  {/* R */}
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('refer-friend')}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 relative ${
+                      activeTab === 'refer-friend'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
+                    }`}
+                  >
+                    <Users className="w-5 h-5 mr-3" />
+                    Refer A Friend
+                    <motion.span 
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg"
+                    >
+                      NEW
+                    </motion.span>
+                  </motion.button>
+
+                  {/* S */}
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('settings')}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      activeTab === 'settings'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
+                    }`}
+                  >
+                    <Settings className="w-5 h-5 mr-3" />
+                    Settings
+                  </motion.button>
+                </nav>
               </div>
-              <div className="flex items-center space-x-2">
-                <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-                  <Bell className="w-5 h-5" />
-                </button>
-                <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-                  <Settings className="w-5 h-5" />
-                </button>
-                <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+            </motion.div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center space-x-8 py-3 overflow-x-auto w-full">
-            {navigationTabs.map((tab) => (
-              <button
-                key={tab.id}
-                className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg whitespace-nowrap transition-colors"
-              >
-                <tab.icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-              </button>
-            ))}
+          {/* Main Content */}
+          <div className="lg:col-span-6 bg-gray-50 px-4">
+            {/* Render content based on active tab */}
+            {activeTab === 'applications' && <ApplicationsPage />}
+            {activeTab === 'change-password' && <ChangePasswordPage />}
+            {activeTab === 'dashboard' && <DashboardPage />}
+            {activeTab === 'document-verification' && <DocumentVerificationPage />}
+            {activeTab === 'internship-opportunities' && <InternshipOpportunitiesPage />}
+            {activeTab === 'my-current-status' && <MyCurrentStatusPage />}
+            {activeTab === 'my-internship' && <MyInternshipPage />}
+            {activeTab === 'news-events' && <NewsEventsPage />}
+            {activeTab === 'profile' && (
+              <ProfileManagementPage 
+                onProfileComplete={() => {
+                  setProfileCompleted(true)
+                  setActiveTab('dashboard')
+                  toast.success('Profile completed successfully! All features are now unlocked.')
+                }}
+              />
+            )}
+            {activeTab === 'refer-friend' && <ReferFriendPage />}
+            {activeTab === 'settings' && <SettingsPage />}
           </div>
-        </div>
-      </header>
 
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-12 gap-6">
-          {/* Left Sidebar */}
-          <div className="lg:col-span-3">
-            <div className="space-y-6">
+          {/* Right Sidebar - Profile Section */}
+          <div className="lg:col-span-3 bg-gray-50 min-h-screen px-4">
+            <div className="space-y-6 py-6">
               {/* Candidate Profile */}
-              <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="bg-white rounded-xl shadow-lg border p-6">
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <User className="w-8 h-8 text-orange-600" />
+                  <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3 overflow-hidden">
+                    {userProfile?.profile_image ? (
+                      <img 
+                        src={userProfile.profile_image} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-8 h-8 text-orange-600" />
+                    )}
                   </div>
-                  <h3 className="font-semibold text-gray-800 mb-1">Candidate ID</h3>
-                  <p className="text-sm text-gray-600">Yes</p>
+                  <h3 className="font-semibold text-gray-800 mb-1">
+                    {userProfile?.full_name || 'Complete Profile'}
+                  </h3>
+                  <p className="text-xs text-gray-500 mb-1">
+                    ID: PMI-{userProfile?.id?.slice(-6)?.toUpperCase() || 'XXXXXX'}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {userProfile?.email || 'No email'}
+                  </p>
                 </div>
                 
                 <div className="space-y-3">
-                  <Link href="#" className="flex items-center space-x-3 p-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                  <Link 
+                    href="/profile/view" 
+                    className="flex items-center space-x-3 p-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
                     <User className="w-5 h-5" />
                     <span className="text-sm font-medium">View Profile / CV</span>
                   </Link>
-                  <Link href="#" className="flex items-center space-x-3 p-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                  <button 
+                    onClick={() => setActiveTab('change-password')}
+                    className="w-full flex items-center space-x-3 p-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
                     <Settings className="w-5 h-5" />
                     <span className="text-sm font-medium">Change Password</span>
-                  </Link>
-                  <Link href="#" className="flex items-center space-x-3 p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  </button>
+                  <button 
+                    onClick={handleSignOut}
+                    className="w-full flex items-center space-x-3 p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
                     <LogOut className="w-5 h-5" />
                     <span className="text-sm font-medium">Sign Out</span>
-                  </Link>
+                  </button>
                 </div>
               </div>
 
               {/* File a Grievance */}
-              <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="bg-white rounded-xl shadow-lg border p-6">
                 <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
                   <FileText className="w-5 h-5 mr-2 text-orange-600" />
                   File a Grievance
@@ -203,7 +429,7 @@ export default function PMInternshipPortal() {
               </div>
 
               {/* Grievance Status */}
-              <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="bg-white rounded-xl shadow-lg border p-6">
                 <h3 className="font-semibold text-gray-800 mb-4">Grievance Status</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -231,131 +457,6 @@ export default function PMInternshipPortal() {
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-6">
-            {/* Status Tabs */}
-            <div className="bg-white rounded-lg shadow-sm border mb-6">
-              <div className="flex border-b">
-                {statusTabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 transition-colors relative ${
-                      activeTab === tab.id
-                        ? 'border-orange-500 text-orange-600 bg-orange-50'
-                        : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                    }`}
-                  >
-                    {tab.label}
-                    {tab.isNew && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded-full">
-                        NEW
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="bg-white rounded-lg shadow-sm border p-8">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800 mb-8">Aadhaar based e-KYC</h2>
-                
-                <div className="flex justify-center space-x-6 mb-8">
-                  <button 
-                    onClick={() => toast.success('Aadhaar e-KYC process initiated')}
-                    className="flex items-center space-x-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-4 px-8 rounded-lg transition-colors shadow-lg"
-                  >
-                    <CreditCard className="w-6 h-6" />
-                    <span>Aadhaar e-KYC</span>
-                  </button>
-                  
-                  <button 
-                    onClick={() => toast.success('Digilocker integration started')}
-                    className="flex items-center space-x-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors shadow-lg"
-                  >
-                    <Folder className="w-6 h-6" />
-                    <span>Digilocker</span>
-                  </button>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-                  <div className="flex items-start space-x-3">
-                    <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <div className="text-left">
-                      <p className="text-sm text-blue-800 mb-2">
-                        <strong>Note:</strong> If you are facing issues in completing your e-KYC with Digilocker or if you need to update your profile information, please refer to
-                      </p>
-                      <p className="text-sm text-blue-800 mb-2">
-                        Digilocker FAQ at <Link href="#" className="text-blue-600 underline">https://www.digilocker.gov.in/about/faq</Link>
-                      </p>
-                      <p className="text-sm text-blue-800">
-                        or you can raise a ticket with Digilocker at <Link href="#" className="text-blue-600 underline">https://support.digilocker.gov.in/open</Link>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                  <div className="flex items-start space-x-3">
-                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                    <div className="text-left">
-                      <p className="text-sm text-yellow-800">
-                        <strong>Note:</strong> If your profile information such as name, date of birth, gender, address etc. does not match,
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Sidebar - Notifications */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-4 border-b">
-                <h3 className="font-semibold text-gray-800 flex items-center">
-                  <Bell className="w-5 h-5 mr-2 text-orange-600" />
-                  Notifications
-                </h3>
-              </div>
-              
-              <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className="border-b border-gray-100 pb-4 last:border-b-0">
-                    <div className="flex items-start space-x-3">
-                      <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                        notification.type === 'action' ? 'bg-red-500' : 
-                        notification.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-800 mb-1 line-clamp-2">
-                          {notification.title}
-                        </h4>
-                        {notification.description && (
-                          <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                            {notification.description}
-                          </p>
-                        )}
-                        {notification.date && (
-                          <p className="text-xs text-gray-500">
-                            {notification.date} at {notification.time}
-                          </p>
-                        )}
-                        {notification.type === 'action' && (
-                          <button className="text-xs text-blue-600 hover:text-blue-800 mt-1">
-                            Read More
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           </div>

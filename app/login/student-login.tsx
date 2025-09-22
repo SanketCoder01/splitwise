@@ -42,13 +42,9 @@ export default function StudentLoginPage() {
   // Check if user is already logged in
   useEffect(() => {
     const checkUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          router.push('/dashboard/student')
-        }
-      } catch (error) {
-        console.log('Auth check error:', error)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        router.push('/dashboard/student')
       }
     }
     checkUser()
@@ -98,14 +94,20 @@ export default function StudentLoginPage() {
     setIsLoading(true)
     
     try {
-      // Sign in with Supabase - simplified without timeout for better reliability
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 15000)
+      )
+
+      // Sign in with Supabase
+      const signInPromise = supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       })
 
+      const { data, error } = await Promise.race([signInPromise, timeoutPromise]) as any
+
       if (error) {
-        console.error('Login error:', error)
         if (error.message.includes('Invalid login credentials')) {
           toast.error('Invalid email or password. Please check your credentials.')
         } else {
@@ -116,15 +118,16 @@ export default function StudentLoginPage() {
 
       if (data.user) {
         toast.success('Login successful! Redirecting to dashboard...')
-        // Small delay to show success message
-        setTimeout(() => {
-          router.push('/dashboard/student')
-        }, 1000)
+        router.push('/dashboard/student')
       }
 
     } catch (error: any) {
       console.error('Login error:', error)
-      toast.error('An unexpected error occurred. Please try again.')
+      if (error.message === 'Request timeout') {
+        toast.error('Login request timed out. Please check your connection and try again.')
+      } else {
+        toast.error('An unexpected error occurred. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }

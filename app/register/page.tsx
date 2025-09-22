@@ -1,26 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { useForm } from 'react-hook-form'
-import { 
-  Eye, 
-  EyeOff, 
-  Shield, 
-  Lock, 
-  User, 
-  Mail, 
-  Phone, 
-  Building,
-  RefreshCw,
-  Volume2,
-  CheckCircle,
-  AlertCircle
-} from 'lucide-react'
+import { Eye, EyeOff, Shield, Lock, User, Mail, Phone, RefreshCw, AlertCircle, CheckCircle, X } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
+import GovernmentHeader from '../../components/shared/GovernmentHeader'
 
 interface RegisterForm {
   fullName: string
@@ -66,7 +52,66 @@ export default function RegisterPage() {
       : ['password', 'confirmPassword']
     
     const isValid = await trigger(fieldsToValidate as any)
-    if (isValid) {
+    if (!isValid) {
+      return
+    }
+
+    // If moving from step 1 to step 2, check if email already exists
+    if (currentStep === 1) {
+      setIsLoading(true)
+      
+      try {
+        const emailValue = watch('email')
+        console.log('🔍 Fast checking email:', emailValue)
+        
+        // Fast email check with timeout
+        const checkPromise = supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', emailValue)
+          .limit(1)
+          .single()
+
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Email check timeout')), 3000)
+        )
+
+        const { data: existingUser, error: checkError } = await Promise.race([
+          checkPromise,
+          timeoutPromise
+        ]) as any
+
+        if (existingUser) {
+          console.log('❌ Email already registered')
+          setShowExistingUserPopup(true)
+          toast.error('This email is already registered. Please try logging in instead.')
+          return
+        }
+
+        // If no existing user found or timeout, proceed
+        if (checkError && checkError.code !== 'PGRST116' && !checkError.message?.includes('timeout')) {
+          console.error('❌ Database error:', checkError)
+          toast.error('Database error. Please try again.')
+          return
+        }
+
+        console.log('✅ Email available, proceeding')
+        setCurrentStep(currentStep + 1)
+        
+      } catch (error: any) {
+        console.error('❌ Email check error:', error)
+        if (error.message?.includes('timeout')) {
+          console.log('⚠️ Timeout occurred, proceeding anyway')
+          toast.error('Email check timed out, proceeding anyway...')
+          setCurrentStep(currentStep + 1)
+        } else {
+          toast.error('Unable to verify email. Please try again.')
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    } else {
+      // For other steps, just proceed normally
       setCurrentStep(currentStep + 1)
     }
   }
@@ -92,93 +137,38 @@ export default function RegisterPage() {
       return
     }
 
-    // Store form data and show popup immediately
-    console.log('💾 Storing registration data and showing popup')
-    setPendingRegistrationData(data)
-    setShowSuccessPopup(true)
-    toast.success('Registration form completed! Click "Proceed to Login" to create your account.')
-  }
+      if (authData.user) {
+        // Create profile in profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: authData.user.id,
+              full_name: data.fullName,
+              email: data.email,
+              phone: data.phone,
+              profile_completion: 15,
+              created_at: new Date().toISOString()
+            }
+          ])
 
-  // Function to redirect to login and create account in background
-  const handleProceedToLogin = async () => {
-    if (!pendingRegistrationData) {
-      toast.error('Registration data not found. Please try again.')
-      return
-    }
+        if (profileError) {
+          console.error('Profile creation error:', profileError)
+        }
 
-    console.log('🚀 User clicked proceed to login - redirecting and creating account...')
-    
-    // Close popup and redirect to login immediately
-    setShowSuccessPopup(false)
-    toast.success('Redirecting to login page...')
-    router.push('/login')
-    
-    // Create account in background after redirect
-    setTimeout(async () => {
-      try {
-        console.log('📝 Creating Supabase account in background...')
+        setShowSuccessPopup(true)
         
-        // Register user with Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: pendingRegistrationData.email,
-          password: pendingRegistrationData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-            data: {
-              full_name: pendingRegistrationData.fullName,
-              phone: pendingRegistrationData.phone,
-              user_type: 'student'
-            }
-          }
-        })
-
-        console.log('📧 Background auth response:', { authData, authError })
-
-        if (authError) {
-          console.error('❌ Background registration error:', authError)
-          return
-        }
-
-        // Check if user was created
-        if (authData.user) {
-          console.log('✅ User created successfully in background:', authData.user.id)
-          console.log('📧 Email verification sent to:', pendingRegistrationData.email)
-          
-          // Create profile record in database
-          try {
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert({
-                id: authData.user.id,
-                full_name: pendingRegistrationData.fullName,
-                phone: pendingRegistrationData.phone,
-                role: 'student',
-                profile_step: 1,
-                profile_completed: false,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              })
-
-            if (profileError) {
-              console.error('⚠️ Background profile creation error:', profileError)
-            } else {
-              console.log('✅ Profile stored in database successfully')
-            }
-          } catch (profileErr) {
-            console.error('⚠️ Background profile creation exception:', profileErr)
-          }
-
-          // Success - account created and email sent
-          console.log('🎉 Background account creation successful! Email sent and data stored.')
-          
-        }
-      } catch (error) {
-        console.error('❌ Background registration exception:', error)
-      } finally {
-        // Clean up pending data
-        setPendingRegistrationData(null)
+        setTimeout(() => {
+          router.push('/login')
+        }, 3000)
       }
-    }, 1000) // 1 second delay to ensure page has redirected
+
+    } catch (error: any) {
+      console.error('Registration error:', error)
+      toast.error('Registration failed. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const getPasswordStrength = (password: string) => {
@@ -215,8 +205,8 @@ export default function RegisterPage() {
         >
           <div className="mb-6">
             <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-4 animate-pulse" />
-            <h3 className="text-2xl font-bold text-gray-900 mb-2"> Registration Form Complete!</h3>
-            <p className="text-lg text-blue-600 font-medium">Ready to create your account</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Registration Form Complete!</h3>
+            <p className="text-lg text-blue-600 font-medium">Ready to create your account with email verification</p>
           </div>
           
           <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg mb-6">
@@ -228,7 +218,7 @@ export default function RegisterPage() {
               
               <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
                 <span></span>
-                <p>Click below to create your account and send verification email</p>
+                <p>We'll send a verification email that you must confirm before login</p>
               </div>
             </div>
           </div>
@@ -238,7 +228,7 @@ export default function RegisterPage() {
               onClick={handleProceedToLogin}
               className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-6 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
             >
-              <span> Proceed to Login</span>
+              <span>Create Account & Send Verification Email</span>
             </button>
             <button
               onClick={() => {
@@ -297,55 +287,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="w-full max-w-full">
-          {/* Top Government Bar */}
-          <div className="bg-gray-100 px-4 py-2 text-sm">
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center space-x-4 text-gray-600">
-                <span>🇮🇳 भारत सरकार | Government of India</span>
-              </div>
-              <div className="flex items-center space-x-4 text-gray-600">
-                <span>🌐 English</span>
-                <span>|</span>
-                <span>हिंदी</span>
-                <span>|</span>
-                <span>Screen Reader</span>
-                <span>A-</span>
-                <span>A</span>
-                <span>A+</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Header */}
-          <div className="px-4 py-4">
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center space-x-6 flex-1">
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                  alt="Government of India"
-                  width={60}
-                  height={60}
-                  className="object-contain"
-                />
-                <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-gray-900">PM Internship & Resume Verifier</h1>
-                  <p className="text-sm text-gray-600">MINISTRY OF EDUCATION</p>
-                  <p className="text-xs text-gray-500">Government of India</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-6">
-                <div className="text-right">
-                  <div className="text-sm font-semibold text-orange-600">विकसित भारत</div>
-                  <div className="text-xs text-gray-500">@2047</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <GovernmentHeader showNavigation={false} showUserActions={false} />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
@@ -660,9 +602,17 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="btn-primary ml-auto"
+                    disabled={isLoading}
+                    className="btn-primary ml-auto flex items-center space-x-2"
                   >
-                    Next
+                    {isLoading && currentStep === 1 ? (
+                      <>
+                        <div className="spinner w-5 h-5 border-2"></div>
+                        <span>Checking Email...</span>
+                      </>
+                    ) : (
+                      <span>Next</span>
+                    )}
                   </button>
                 ) : (
                   <button

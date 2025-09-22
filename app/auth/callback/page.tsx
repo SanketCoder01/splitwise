@@ -23,18 +23,55 @@ export default function AuthCallback() {
         if (data.session) {
           toast.success('Email verified successfully!')
           
-          // Check if user has completed profile
-          const { data: profileData } = await supabase
+          // Check if user has a profile
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('profile_completed, profile_step')
+            .select('profile_completed, profile_step, full_name')
             .eq('id', data.session.user.id)
             .single()
+
+          // If no profile exists, create one (new user)
+          if (profileError && profileError.code === 'PGRST116') {
+            console.log('🆕 Creating profile for new user:', data.session.user.id)
+            
+            // Get user metadata from auth
+            const userMetadata = data.session.user.user_metadata || {}
+            
+            const { error: createProfileError } = await supabase
+              .from('profiles')
+              .insert({
+                id: data.session.user.id,
+                email: data.session.user.email,
+                full_name: userMetadata.full_name || '',
+                phone: userMetadata.phone || '',
+                role: 'student',
+                profile_step: 1,
+                profile_completed: false,
+                document_verified: false,
+                aadhaar_verified: false,
+                digilocker_verified: false,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+
+            if (createProfileError) {
+              console.error('❌ Error creating profile:', createProfileError)
+              toast.error('Error setting up your profile. Please contact support.')
+              router.push('/login')
+              return
+            }
+            
+            console.log('✅ Profile created successfully')
+            toast.success('Account setup complete! Please complete your profile.')
+            router.push('/dashboard/student')
+            return
+          }
 
           // Redirect based on profile completion status
           if (profileData?.profile_completed) {
             router.push('/dashboard')
           } else {
-            router.push('/dashboard?tab=profile-steps')
+            router.push('/dashboard/student')
           }
         } else {
           router.push('/login')

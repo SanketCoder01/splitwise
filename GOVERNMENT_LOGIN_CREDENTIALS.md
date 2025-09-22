@@ -1,20 +1,46 @@
 # Government Login Credentials
 
-## 🏛️ **PM Internship & Resume Verifier - Government Portal Access**
+## 🏛️ **PM Internship Portal - Login Credentials**
 
-### **Real Government Employee Credentials:**
+## 🏛️ Government Officials
+- **Employee ID**: `GOV001` | **Password**: `gov123456`
+  - Name: Dr. Rajesh Kumar
+  - Role: Joint Secretary, Ministry of Education
+  
+- **Employee ID**: `GOV002` | **Password**: `gov123456`
+  - Name: Ms. Priya Sharma  
+  - Role: Director, Ministry of Electronics & IT
+  
+- **Employee ID**: `GOV003` | **Password**: `gov123456`
+  - Name: Mr. Amit Singh
+  - Role: Under Secretary, Ministry of Skill Development
 
-#### **1. Dr. Rajesh Kumar - Joint Secretary**
-- **Employee ID:** `GOV001`
-- **Password:** `password123`
-- **Email:** rajesh.kumar@gov.in
-- **Department:** Higher Education, Ministry of Education
-- **Office:** Shastri Bhawan, New Delhi
-- **Phone:** +91-11-2338-1234
+## 🏢 Recruiters/Organizations
+- **Organization ID**: `ORG001` | **Password**: `recruiter123`
+  - Organization: National Informatics Centre
+  - Ministry: Ministry of Electronics & IT
+  
+- **Organization ID**: `ORG002` | **Password**: `recruiter123`
+  - Organization: Indian Space Research Organisation
+  - Ministry: Department of Space
+  
+- **Organization ID**: `ORG003` | **Password**: `recruiter123`
+  - Organization: Bharat Heavy Electricals Limited
+  - Ministry: Ministry of Heavy Industries
+  
+- **Organization ID**: `ORG004` | **Password**: `recruiter123`
+  - Organization: Defence Research and Development Organisation
+  - Ministry: Ministry of Defence
+  
+- **Organization ID**: `ORG005` | **Password**: `recruiter123`
+  - Organization: Indian Railways
+  - Ministry: Ministry of Railways
 
-#### **2. Ms. Priya Sharma - Director**
-- **Employee ID:** `GOV002`
-- **Password:** `password123`
+## 📋 Setup Instructions
+1. Run `setup-database-with-auth.sql` in Supabase SQL Editor
+2. This will create all tables and insert the test data
+3. Use the credentials above for testing the system
+4. All organizations are pre-approved for immediate use
 - **Email:** priya.sharma@gov.in
 - **Department:** Skill Development, Ministry of Education
 - **Office:** Shastri Bhawan, New Delhi

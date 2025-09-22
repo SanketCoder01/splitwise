@@ -98,7 +98,7 @@ export default function StudentLoginPage() {
     setIsLoading(true)
     
     try {
-      // Sign in with Supabase - simplified without timeout for better reliability
+      // Sign in with Supabase - simplified without timeout for now
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
