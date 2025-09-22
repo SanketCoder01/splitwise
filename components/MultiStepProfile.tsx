@@ -97,8 +97,25 @@ export default function MultiStepProfile() {
 
       if (error) {
         console.error('Supabase error:', error)
-        alert(`Error updating profile: ${error.message}`)
-        return
+        if (error.code === 'PGRST204' && error.message.includes('resume_url')) {
+          console.warn('resume_url column not found. Please add it using: ALTER TABLE profiles ADD COLUMN resume_url TEXT;')
+          // Continue without the resume_url field
+          const updateDataWithoutResume = { ...updateData }
+          delete updateDataWithoutResume.resume_url
+          
+          const { error: retryError } = await supabase
+            .from('profiles')
+            .update(updateDataWithoutResume)
+            .eq('id', user.id)
+            
+          if (retryError) {
+            alert(`Error updating profile: ${retryError.message}`)
+            return
+          }
+        } else {
+          alert(`Error updating profile: ${error.message}`)
+          return
+        }
       }
 
       // Update local state

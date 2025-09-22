@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Search, Filter, MapPin, Calendar, Clock, Users, Star, 
-  Briefcase, Award, Heart, ExternalLink, Brain, Zap, Target
+  Briefcase, Award, Heart, ExternalLink, Brain, Zap, Target,
+  Upload, FileText, CheckCircle, Eye, Download, X
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { toast } from 'react-hot-toast'
 
 interface Internship {
   id: string
@@ -52,6 +54,14 @@ export default function InternshipSearch() {
   const [showFilters, setShowFilters] = useState(false)
   const [loading, setLoading] = useState(true)
   const [savedInternships, setSavedInternships] = useState<string[]>([])
+  const [showApplicationModal, setShowApplicationModal] = useState(false)
+  const [selectedInternship, setSelectedInternship] = useState<Internship | null>(null)
+  const [profileData, setProfileData] = useState<any>({})
+  const [hasResume, setHasResume] = useState(false)
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [isAIMatching, setIsAIMatching] = useState(false)
 
   const locations = ['New Delhi', 'Mumbai', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Pune', 'Remote']
   const durations = ['1 month', '2 months', '3 months', '6 months', '1 year']
@@ -70,7 +80,10 @@ export default function InternshipSearch() {
   useEffect(() => {
     fetchInternships()
     fetchSavedInternships()
-  }, [])
+    if (user) {
+      fetchProfileData()
+    }
+  }, [user])
 
   useEffect(() => {
     applyFiltersAndSearch()
@@ -187,6 +200,30 @@ export default function InternshipSearch() {
     setSavedInternships(['1', '2'])
   }
 
+  const fetchProfileData = async () => {
+    if (!user?.id) return
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error) {
+        console.error('Error fetching profile:', error)
+        return
+      }
+
+      if (data) {
+        setProfileData(data)
+        setHasResume(!!data.resume_url)
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+    }
+  }
+
   const applyFiltersAndSearch = () => {
     let filtered = [...internships]
 
@@ -235,9 +272,85 @@ export default function InternshipSearch() {
     }
   }
 
-  const applyToInternship = async (internshipId: string) => {
-    // Handle application logic
-    console.log('Applying to internship:', internshipId)
+  const applyToInternship = async (internship: Internship) => {
+    setSelectedInternship(internship)
+    setShowApplicationModal(true)
+  }
+
+  const handleResumeUpload = async (file: File) => {
+    if (!user?.id) return
+    
+    try {
+      const fileName = `${user.id}/resume-${Date.now()}.${file.name.split('.').pop()}`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(fileName, file)
+
+      if (uploadError) {
+        toast.error('Failed to upload resume')
+        return
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('resumes')
+        .getPublicUrl(fileName)
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ resume_url: urlData.publicUrl })
+        .eq('id', user.id)
+
+      if (updateError) {
+        toast.error('Failed to save resume')
+        return
+      }
+
+      setHasResume(true)
+      setResumeFile(null)
+      setProfileData((prev: any) => ({ ...prev, resume_url: urlData.publicUrl }))
+      toast.success('Resume uploaded successfully!')
+    } catch (error) {
+      toast.error('Failed to upload resume')
+    }
+  }
+
+  const handleSubmitApplication = async () => {
+    if (!hasResume) {
+      toast.error('Please upload your resume first')
+      return
+    }
+
+    setIsSubmitting(true)
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      setShowApplicationModal(false)
+      setShowSuccessModal(true)
+    } catch (error) {
+      toast.error('Failed to submit application. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleAIMatching = async () => {
+    setIsAIMatching(true)
+    
+    try {
+      // Simulate AI matching process with 4-5 second delay
+      await new Promise(resolve => setTimeout(resolve, 4500))
+      
+      // Re-fetch internships with updated AI recommendations
+      await fetchInternships()
+      
+      toast.success('AI matching completed! Found personalized recommendations for you.')
+    } catch (error) {
+      toast.error('AI matching failed. Please try again.')
+    } finally {
+      setIsAIMatching(false)
+    }
   }
 
   const InternshipCard = ({ internship }: { internship: Internship }) => (
@@ -328,7 +441,7 @@ export default function InternshipSearch() {
             <span>Details</span>
           </button>
           <button
-            onClick={() => applyToInternship(internship.id)}
+            onClick={() => applyToInternship(internship)}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
           >
             Apply Now
@@ -363,15 +476,39 @@ export default function InternshipSearch() {
         </div>
 
         {/* AI Insights */}
-        <div className="flex items-center space-x-4 text-sm">
-          <div className="flex items-center space-x-1 text-blue-600">
-            <Brain className="w-4 h-4" />
-            <span>AI found {filteredInternships.filter(i => i.is_recommended).length} perfect matches for you</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4 text-sm">
+            <div className="flex items-center space-x-1 text-blue-600">
+              <Brain className="w-4 h-4" />
+              <span>AI found {filteredInternships.filter(i => i.is_recommended).length} perfect matches for you</span>
+            </div>
+            <div className="flex items-center space-x-1 text-green-600">
+              <Zap className="w-4 h-4" />
+              <span>Based on your profile and skills</span>
+            </div>
           </div>
-          <div className="flex items-center space-x-1 text-green-600">
-            <Zap className="w-4 h-4" />
-            <span>Based on your profile and skills</span>
-          </div>
+          
+          <button
+            onClick={handleAIMatching}
+            disabled={isAIMatching}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              isAIMatching
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
+            }`}
+          >
+            {isAIMatching ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>AI Matching...</span>
+              </>
+            ) : (
+              <>
+                <Brain className="w-4 h-4" />
+                <span>AI Internship Matcher</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Filters Panel */}
@@ -456,6 +593,58 @@ export default function InternshipSearch() {
         </div>
       </div>
 
+      {/* AI Matching Loading Overlay */}
+      <AnimatePresence>
+        {isAIMatching && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.8, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 20 }}
+              className="bg-white rounded-lg p-8 max-w-md w-full mx-4 text-center"
+            >
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-gradient-to-r from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Brain className="w-10 h-10 text-purple-600 animate-pulse" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full animate-ping"></div>
+                <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-purple-500 rounded-full animate-bounce"></div>
+              </div>
+              
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Internship Matcher</h3>
+              <p className="text-gray-600 mb-4">
+                Analyzing your profile and matching with the best internships for your skills...
+              </p>
+              
+              <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                <span>Finding perfect matches</span>
+              </div>
+              
+              <div className="mt-6 bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">Matching Progress</span>
+                  <span className="text-sm font-medium text-purple-600">Analyzing...</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <motion.div
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: 4, ease: "easeInOut" }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Internship Cards */}
       {loading ? (
         <div className="grid grid-cols-1 gap-6">
@@ -486,6 +675,218 @@ export default function InternshipSearch() {
           <p className="text-gray-600">Try adjusting your search criteria or filters</p>
         </div>
       )}
+
+      {/* Application Modal */}
+      <AnimatePresence>
+        {showApplicationModal && selectedInternship && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Apply for Internship</h2>
+                  <p className="text-gray-600 mt-1">{selectedInternship.title} at {selectedInternship.ministry}</p>
+                </div>
+                <button
+                  onClick={() => setShowApplicationModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6">
+                {/* Profile Summary */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-3">Your Profile Summary</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p><span className="font-medium">Name:</span> {profileData.full_name || 'Not provided'}</p>
+                      <p><span className="font-medium">Email:</span> {user?.email || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <p><span className="font-medium">Phone:</span> {profileData.phone || 'Not provided'}</p>
+                      <p><span className="font-medium">Education:</span> {profileData.education_level || 'Not provided'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Resume Section */}
+                <div>
+                  <h3 className="font-medium text-gray-900 mb-3">Resume</h3>
+                  {hasResume ? (
+                    <div className="flex items-center justify-between p-4 border border-green-200 bg-green-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-green-900">Resume uploaded successfully</p>
+                          <p className="text-sm text-green-700">Your resume is ready for application</p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button className="flex items-center space-x-1 px-3 py-1 text-green-700 border border-green-300 rounded hover:bg-green-100 text-sm">
+                          <Eye className="w-4 h-4" />
+                          <span>View</span>
+                        </button>
+                        {profileData.resume_url && (
+                          <a
+                            href={profileData.resume_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-1 px-3 py-1 text-green-700 border border-green-300 rounded hover:bg-green-100 text-sm"
+                          >
+                            <Download className="w-4 h-4" />
+                            <span>Download</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+                      <h4 className="font-medium text-gray-900 mb-2">Upload Your Resume</h4>
+                      <p className="text-gray-600 mb-4 text-sm">Please upload your resume to proceed with the application</p>
+                      
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            setResumeFile(file)
+                            handleResumeUpload(file)
+                          }
+                        }}
+                        className="hidden"
+                        id="resume-upload-modal"
+                      />
+                      <label
+                        htmlFor="resume-upload-modal"
+                        className="cursor-pointer inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>Choose Resume File</span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-2">Supported formats: PDF, DOC, DOCX (Max 10MB)</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Internship Details */}
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h3 className="font-medium text-blue-900 mb-3">Internship Details</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="w-4 h-4 text-blue-600" />
+                      <span className="text-blue-800">{selectedInternship.location}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-blue-600" />
+                      <span className="text-blue-800">{selectedInternship.duration}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Award className="w-4 h-4 text-blue-600" />
+                      <span className="text-blue-800">{selectedInternship.stipend}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Users className="w-4 h-4 text-blue-600" />
+                      <span className="text-blue-800">{selectedInternship.slots_available - selectedInternship.slots_filled} slots left</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+                <div className="text-sm text-gray-600">
+                  {hasResume 
+                    ? 'Your profile is complete. Ready to apply!' 
+                    : 'Please upload your resume to proceed.'
+                  }
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowApplicationModal(false)}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmitApplication}
+                    disabled={!hasResume || isSubmitting}
+                    className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
+                      hasResume && !isSubmitting
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Apply Now</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Success Modal */}
+      <AnimatePresence>
+        {showSuccessModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-lg max-w-md w-full p-6 text-center"
+            >
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Application Submitted Successfully!</h3>
+              <p className="text-gray-600 mb-6">
+                Your application for {selectedInternship?.title} has been submitted successfully. 
+                You will receive a confirmation email shortly.
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowSuccessModal(false)}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Continue Browsing
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

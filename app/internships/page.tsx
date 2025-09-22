@@ -5,9 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Search, Filter, MapPin, Calendar, Building, Users, 
   Star, Zap, Brain, ChevronDown, ChevronUp, ExternalLink,
-  Clock, DollarSign, Award, BookOpen, Target
+  Clock, DollarSign, Award, BookOpen, Target, X, Upload,
+  FileText, CheckCircle, Loader
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface Internship {
   id: string
@@ -122,6 +125,7 @@ const mockInternships: Internship[] = [
 ]
 
 export default function InternshipsPage() {
+  const { user } = useAuth()
   const [internships, setInternships] = useState<Internship[]>(mockInternships)
   const [filteredInternships, setFilteredInternships] = useState<Internship[]>(mockInternships)
   const [searchTerm, setSearchTerm] = useState('')
@@ -133,6 +137,48 @@ export default function InternshipsPage() {
   const [showAIMatching, setShowAIMatching] = useState(false)
   const [isMatchingInProgress, setIsMatchingInProgress] = useState(false)
   const [expandedInternship, setExpandedInternship] = useState<string | null>(null)
+  
+  // New state for modals and application flow
+  const [showAIModal, setShowAIModal] = useState(false)
+  const [showApplicationModal, setShowApplicationModal] = useState(false)
+  const [selectedInternshipId, setSelectedInternshipId] = useState<string | null>(null)
+  const [userResume, setUserResume] = useState<string | null>(null)
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isApplying, setIsApplying] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+
+  // Fetch user's resume on component mount
+  useEffect(() => {
+    const fetchUserResume = async () => {
+      if (user?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('resume_url')
+            .eq('id', user.id)
+            .single()
+          
+          if (error) {
+            if (error.code === 'PGRST204') {
+              console.warn('resume_url column not found in profiles table. Please add it using: ALTER TABLE profiles ADD COLUMN resume_url TEXT;')
+            } else {
+              console.error('Error fetching user resume:', error)
+            }
+            return
+          }
+          
+          if (data?.resume_url) {
+            setUserResume(data.resume_url)
+          }
+        } catch (error) {
+          console.error('Error fetching user resume:', error)
+        }
+      }
+    }
+    
+    fetchUserResume()
+  }, [user])
 
   // Filter internships based on search and filters
   useEffect(() => {
@@ -157,20 +203,90 @@ export default function InternshipsPage() {
   }, [searchTerm, selectedFilters, internships, showAIMatching])
 
   const handleAIMatching = async () => {
+    setShowAIModal(true)
     setIsMatchingInProgress(true)
-    toast.loading('AI is analyzing your profile and matching internships...', { duration: 2000 })
     
-    // Simulate AI matching process
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // Simulate AI matching process with 4-5 seconds delay
+    await new Promise(resolve => setTimeout(resolve, 4500))
     
     setShowAIMatching(true)
     setIsMatchingInProgress(false)
+    setShowAIModal(false)
     toast.success('AI matching completed! Internships are now sorted by compatibility.')
   }
 
   const handleApply = (internshipId: string) => {
-    // This will redirect to application form
-    window.location.href = `/internships/${internshipId}/apply`
+    setSelectedInternshipId(internshipId)
+    setShowApplicationModal(true)
+  }
+
+  const handleResumeUpload = async () => {
+    if (!resumeFile || !user?.id) return
+
+    setIsUploading(true)
+    try {
+      const fileName = `${user.id}/resume-${Date.now()}.${resumeFile.name.split('.').pop()}`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(fileName, resumeFile)
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('resumes')
+        .getPublicUrl(fileName)
+
+      // Update user profile with new resume URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ resume_url: urlData.publicUrl })
+        .eq('id', user.id)
+
+      if (updateError) {
+        console.error('Profile update error:', updateError)
+        // If column doesn't exist, still continue with the upload
+        if (updateError.code !== 'PGRST204') {
+          throw updateError
+        } else {
+          console.warn('resume_url column not found in profiles table. Please add it using: ALTER TABLE profiles ADD COLUMN resume_url TEXT;')
+        }
+      }
+
+      setUserResume(urlData.publicUrl)
+      setResumeFile(null)
+      toast.success('Resume uploaded successfully!')
+    } catch (error) {
+      console.error('Error uploading resume:', error)
+      toast.error('Failed to upload resume. Please try again.')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleSubmitApplication = async () => {
+    if (!userResume || !selectedInternshipId) {
+      toast.error('Please upload your resume before applying.')
+      return
+    }
+
+    setIsApplying(true)
+    try {
+      // Simulate application submission
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      setShowApplicationModal(false)
+      setShowSuccessModal(true)
+      
+      // Auto-close success modal after 5 seconds
+      setTimeout(() => {
+        setShowSuccessModal(false)
+      }, 5000)
+    } catch (error) {
+      console.error('Error submitting application:', error)
+      toast.error('Failed to submit application. Please try again.')
+    } finally {
+      setIsApplying(false)
+    }
   }
 
   const getMatchScoreColor = (score: number) => {
@@ -445,6 +561,229 @@ export default function InternshipsPage() {
           </div>
         )}
       </div>
+
+      {/* AI Matching Modal */}
+      <AnimatePresence>
+        {showAIModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-2xl"
+            >
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                >
+                  <Brain className="w-10 h-10 text-purple-600" />
+                </motion.div>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">AI Internship Matcher</h3>
+              <p className="text-gray-600 mb-6">
+                Finding the best internships that match with your skills and profile...
+              </p>
+              
+              <div className="flex items-center justify-center space-x-2 text-purple-600">
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="w-2 h-2 bg-purple-600 rounded-full"
+                />
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+                  className="w-2 h-2 bg-purple-600 rounded-full"
+                />
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+                  className="w-2 h-2 bg-purple-600 rounded-full"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Application Modal */}
+      <AnimatePresence>
+        {showApplicationModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Apply for Internship</h3>
+                <button
+                  onClick={() => setShowApplicationModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Resume Section */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Your Resume</h4>
+                  
+                  {userResume ? (
+                    <div className="border border-green-200 bg-green-50 rounded-lg p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <FileText className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-green-900">Resume uploaded</p>
+                          <p className="text-sm text-green-700">Your resume is ready for application</p>
+                        </div>
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <div className="text-center">
+                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600 mb-4">No resume found. Please upload your resume to apply.</p>
+                        
+                        <div className="space-y-4">
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                            className="hidden"
+                            id="resume-upload"
+                          />
+                          <label
+                            htmlFor="resume-upload"
+                            className="inline-flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                          >
+                            <Upload className="w-4 h-4" />
+                            <span>Choose Resume File</span>
+                          </label>
+                          
+                          {resumeFile && (
+                            <div className="text-sm text-gray-600">
+                              Selected: {resumeFile.name}
+                            </div>
+                          )}
+                          
+                          {resumeFile && (
+                            <button
+                              onClick={handleResumeUpload}
+                              disabled={isUploading}
+                              className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+                            >
+                              {isUploading ? (
+                                <>
+                                  <Loader className="w-4 h-4 animate-spin" />
+                                  <span>Uploading...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="w-4 h-4" />
+                                  <span>Upload Resume</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Application Actions */}
+                <div className="flex space-x-4">
+                  <button
+                    onClick={() => setShowApplicationModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmitApplication}
+                    disabled={!userResume || isApplying}
+                    className="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+                  >
+                    {isApplying ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        <span>Applying...</span>
+                      </>
+                    ) : (
+                      <span>Apply Now</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Success Modal */}
+      <AnimatePresence>
+        {showSuccessModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-2xl"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
+              >
+                <CheckCircle className="w-12 h-12 text-green-600" />
+              </motion.div>
+              
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Application Submitted!</h3>
+              <p className="text-gray-600 mb-6">
+                Your application has been successfully submitted to the PM Internship Portal. 
+                You will receive updates via email about your application status.
+              </p>
+              
+              <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-800">
+                  <strong>Application ID:</strong> PMI-{Date.now().toString().slice(-6)}
+                </p>
+              </div>
+              
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                Continue
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
