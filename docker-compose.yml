@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: resuchain-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: resuchain_db
+      MYSQL_USER: resuchain
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - resuchain-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: resuchain-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/resuchain_db
+      SPRING_DATASOURCE_USERNAME: resuchain
+      SPRING_DATASOURCE_PASSWORD: password
+      JWT_SECRET: mySecretKey123456789012345678901234567890
+      AI_SERVICE_URL: http://ai-service:8001
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    networks:
+      - resuchain-network
+    volumes:
+      - ./uploads:/app/uploads
+
+  # FastAPI AI Service
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: resuchain-ai-service
+    ports:
+      - "8001:8001"
+    networks:
+      - resuchain-network
+    volumes:
+      - ./ai-models:/app/models
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: resuchain-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api
+      NEXT_PUBLIC_AI_SERVICE_URL: http://localhost:8001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - resuchain-network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: resuchain-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - resuchain-network
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  resuchain-network:
+    driver: bridge
