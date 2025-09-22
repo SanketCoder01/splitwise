@@ -6,6 +6,8 @@ import { Eye, EyeOff, Shield, User, Building2, Lock, CheckCircle, AlertCircle, L
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { toast } from 'react-hot-toast'
 
 export default function GovernmentLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -20,6 +22,7 @@ export default function GovernmentLoginPage() {
   const [captchaCode, setCaptchaCode] = useState('G7X9M')
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     const generateCaptcha = () => {
@@ -62,8 +65,45 @@ export default function GovernmentLoginPage() {
     if (!validateForm()) return
     
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setStep('otp')
+    
+    try {
+      // Check government official credentials
+      const { data: official, error } = await supabase
+        .from('government_officials')
+        .select('*')
+        .eq('employee_id', formData.employeeId)
+        .single()
+      
+      if (error || !official) {
+        setErrors({ employeeId: 'Invalid Employee ID' })
+        setIsLoading(false)
+        return
+      }
+      
+      // Simple password check (in production, use proper hashing)
+      const validPasswords = {
+        'GOV001': 'password123',
+        'GOV002': 'password123', 
+        'GOV003': 'password123'
+      }
+      
+      if (validPasswords[formData.employeeId as keyof typeof validPasswords] !== formData.password) {
+        setErrors({ password: 'Invalid Password' })
+        setIsLoading(false)
+        return
+      }
+      
+      // Store official data in session storage for gov dashboard
+      sessionStorage.setItem('government_official', JSON.stringify(official))
+      
+      toast.success(`Welcome ${official.name}!`)
+      setStep('otp')
+      
+    } catch (error) {
+      console.error('Login error:', error)
+      setErrors({ general: 'Login failed. Please try again.' })
+    }
+    
     setIsLoading(false)
   }
 
@@ -160,7 +200,7 @@ export default function GovernmentLoginPage() {
                 />
                 <div className="text-center">
                   <h1 className="text-xl font-bold text-gray-900">PM Internship & Resume Verifier</h1>
-                  <p className="text-xs text-gray-600">MINISTRY OF CORPORATE AFFAIRS</p>
+                  <p className="text-xs text-gray-600">MINISTRY OF EDUCATION</p>
                   <p className="text-xs text-gray-500">Government of India</p>
                 </div>
               </div>
@@ -241,7 +281,7 @@ export default function GovernmentLoginPage() {
               <div className="bg-black/30 backdrop-blur-sm rounded-lg p-6 border border-white/20">
                 <h3 className="text-xl font-bold mb-3">Official Government Access</h3>
                 <p className="text-sm leading-relaxed max-w-lg mx-auto">
-                  Ministry of Corporate Affairs - Authorized personnel portal for managing PM Internship programs.
+                  Ministry of Education - Authorized personnel portal for managing PM Internship programs.
                   Secure access for government officials to oversee student applications and verification processes.
                 </p>
                 <div className="mt-4 text-xs opacity-75">

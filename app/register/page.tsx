@@ -331,7 +331,7 @@ export default function RegisterPage() {
                 />
                 <div className="flex-1">
                   <h1 className="text-2xl font-bold text-gray-900">PM Internship & Resume Verifier</h1>
-                  <p className="text-sm text-gray-600">MINISTRY OF CORPORATE AFFAIRS</p>
+                  <p className="text-sm text-gray-600">MINISTRY OF EDUCATION</p>
                   <p className="text-xs text-gray-500">Government of India</p>
                 </div>
               </div>
@@ -634,7 +634,7 @@ export default function RegisterPage() {
                         <Link href="/privacy" className="text-government-blue hover:underline">
                           Privacy Policy
                         </Link>{' '}
-                        of ResuChain platform.
+                        of PM Internship Portal.
                       </span>
                     </label>
                     {errors.agreeTerms && (

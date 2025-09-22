@@ -27,7 +27,7 @@
         <div class="header">
             <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Government of India" class="logo">
             <h1>PM Internship & Resume Verifier</h1>
-            <p>Government of India | Ministry of Corporate Affairs</p>
+            <p>Government of India | Ministry of EDUCATION</p>
         </div>
         
         <div class="content">
@@ -67,7 +67,7 @@
         <div class="footer">
             <p>🇮🇳 <strong>विकसित भारत @2047</strong></p>
             <p>PM Internship & Resume Verifier<br>
-            Ministry of Corporate Affairs, Government of India</p>
+            Ministry of EDUCATION, Government of India</p>
             <p>This is an automated email. Please do not reply to this email.</p>
         </div>
     </div>
@@ -138,7 +138,7 @@
         <div class="footer">
             <p>🇮🇳 <strong>विकसित भारत @2047</strong></p>
             <p>PM Internship & Resume Verifier<br>
-            Ministry of Corporate Affairs, Government of India</p>
+            Ministry of EDUCATION, Government of India</p>
         </div>
     </div>
 </body>

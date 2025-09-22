@@ -121,7 +121,7 @@ export default function PMInternshipPortal() {
                   <Shield className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h1 className="text-lg font-bold text-gray-800">MINISTRY OF CORPORATE AFFAIRS</h1>
+                  <h1 className="text-lg font-bold text-gray-800">MINISTRY OF EDUCATION</h1>
                   <p className="text-xs text-gray-600">INTERNSHIP</p>
                 </div>
               </div>

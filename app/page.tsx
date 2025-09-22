@@ -94,7 +94,7 @@ export default function HomePage() {
     {
       name: "Dr. Rajesh Kumar",
       position: "HR Director, Tech Mahindra",
-      content: "ResuChain has revolutionized our hiring process. The AI-powered verification saves us hours of manual work.",
+      content: "PM Internship Portal has revolutionized our hiring process. The AI-powered verification saves us hours of manual work.",
       rating: 5,
       image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
     },
@@ -108,7 +108,7 @@ export default function HomePage() {
     {
       name: "Amit Patel",
       position: "CEO, StartupXYZ",
-      content: "As a startup, ResuChain helps us make confident hiring decisions with verified candidate information.",
+      content: "As a startup, PM Internship Portal helps us make confident hiring decisions with verified candidate information.",
       rating: 5,
       image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
     }
@@ -120,19 +120,19 @@ export default function HomePage() {
       answer: "Our AI system uses advanced natural language processing to extract and analyze resume data, cross-referencing information with multiple databases to ensure accuracy and authenticity."
     },
     {
-      question: "Is my data secure with ResuChain?",
+      question: "Is my data secure with PM Internship Portal?",
       answer: "Yes, we use enterprise-grade security with blockchain technology to ensure your data is encrypted, secure, and tamper-proof. We comply with all government data protection regulations."
     },
     {
       question: "What file formats are supported?",
-      answer: "ResuChain supports PDF, DOC, and DOCX formats. Our AI can process resumes in multiple languages and various layouts with high accuracy."
+      answer: "PM Internship Portal supports PDF, DOC, and DOCX formats. Our AI can process resumes in multiple languages and various layouts with high accuracy."
     },
     {
       question: "How long does verification take?",
       answer: "Basic resume parsing takes 2-3 minutes. Complete verification including skills assessment and document validation typically takes 15-30 minutes depending on the complexity."
     },
     {
-      question: "Can organizations integrate ResuChain with their existing systems?",
+      question: "Can organizations integrate PM Internship Portal with their existing systems?",
       answer: "Yes, we provide comprehensive APIs and integration support for ATS systems, HRMS platforms, and custom applications. Our technical team assists with seamless integration."
     },
     {
@@ -320,7 +320,7 @@ export default function HomePage() {
                 />
                 <div className="flex-1">
                   <h1 className="text-2xl font-bold text-gray-900">PM Internship & Resume Verifier</h1>
-                  <p className="text-sm text-gray-600">MINISTRY OF CORPORATE AFFAIRS</p>
+                  <p className="text-sm text-gray-600">MINISTRY OF EDUCATION</p>
                   <p className="text-xs text-gray-500">Government of India</p>
                 </div>
               </div>
@@ -645,7 +645,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { title: "PM Internship Scheme", dept: "Ministry of Corporate Affairs", slots: "10,000+", icon: Users },
+              { title: "PM Internship Scheme", dept: "Ministry of Education", slots: "10,000+", icon: Users },
               { title: "Digital India Internship", dept: "Ministry of Electronics & IT", slots: "5,000+", icon: Cpu },
               { title: "Skill Development Program", dept: "Ministry of Skill Development", slots: "15,000+", icon: Target },
               { title: "Research Internship", dept: "DRDO & ISRO", slots: "2,000+", icon: Award },
@@ -808,7 +808,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Join thousands who trust ResuChain for resume verification
+            Join thousands who trust PM Internship Portal for career opportunities
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register" className="bg-white text-blue-600 px-8 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors">
@@ -821,25 +821,78 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Simple Footer */}
-      <footer className="bg-gray-900 text-white py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <Shield className="w-6 h-6 text-blue-600" />
-              <span className="text-lg font-bold">ResuChain</span>
-            </div>
-            
-            <div className="flex space-x-6 text-sm text-gray-400">
-              <Link href="/privacy" className="hover:text-white">Privacy</Link>
-              <Link href="/terms" className="hover:text-white">Terms</Link>
-              <Link href="/help" className="hover:text-white">Help</Link>
-              <Link href="/contact" className="hover:text-white">Contact</Link>
+      {/* Government Footer */}
+      <footer className="bg-gray-900 text-white">
+        {/* Main Footer Content */}
+        <div className="py-12">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {/* Government Branding */}
+              <div className="lg:col-span-2">
+                <div className="flex items-center space-x-3 mb-6">
+                  <Image
+                    src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
+                    alt="Government of India"
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                  />
+                  <div>
+                    <h3 className="text-xl font-bold text-white">PM Internship Portal</h3>
+                    <p className="text-sm text-gray-400">Ministry of Education</p>
+                    <p className="text-xs text-gray-500">Government of India</p>
+                  </div>
+                </div>
+                <p className="text-gray-400 mb-4 max-w-md">
+                  Empowering India's youth through skill development and career opportunities. 
+                  A flagship initiative to bridge the gap between education and employment.
+                </p>
+                <div className="flex items-center space-x-2 text-sm text-gray-400">
+                  <span>🇮🇳</span>
+                  <span>भारत सरकार | Government of India</span>
+                </div>
+              </div>
+
+              {/* Quick Links */}
+              <div>
+                <h4 className="text-lg font-semibold mb-4 text-white">Quick Links</h4>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li><Link href="/internships" className="hover:text-white transition-colors">Find Internships</Link></li>
+                  <li><Link href="/register" className="hover:text-white transition-colors">Student Registration</Link></li>
+                  <li><Link href="/gov-login" className="hover:text-white transition-colors">Government Login</Link></li>
+                  <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
+                  <li><Link href="/help" className="hover:text-white transition-colors">Help & Support</Link></li>
+                </ul>
+              </div>
+
+              {/* Government Resources */}
+              <div>
+                <h4 className="text-lg font-semibold mb-4 text-white">Government Resources</h4>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li><a href="https://www.india.gov.in" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">India.gov.in</a></li>
+                  <li><a href="https://digitalindia.gov.in" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Digital India</a></li>
+                  <li><a href="https://www.mygov.in" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">MyGov.in</a></li>
+                  <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                  <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+                </ul>
+              </div>
             </div>
           </div>
-          
-          <div className="border-t border-gray-800 mt-6 pt-6 text-center text-sm text-gray-400">
-            <p>&copy; 2025 ResuChain - Government of India. All rights reserved.</p>
+        </div>
+
+        {/* Bottom Footer */}
+        <div className="bg-gray-800 py-4">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col md:flex-row items-center justify-between text-sm text-gray-400">
+              <div className="mb-2 md:mb-0">
+                <p>&copy; 2025 PM Internship Portal - Ministry of Education, Government of India. All rights reserved.</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <span>Last Updated: {new Date().toLocaleDateString('en-IN')}</span>
+                <span>|</span>
+                <span>Version 2.0</span>
+              </div>
+            </div>
           </div>
         </div>
       </footer>

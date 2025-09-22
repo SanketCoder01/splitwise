@@ -7,9 +7,12 @@ import {
   Briefcase, MessageSquare, FileCheck, Edit, Save, Plus, Download,
   Home, Upload, CheckCircle, Clock, Star, HelpCircle, Shield,
   Phone, Mail, MapPin, Calendar, BookOpen, Zap, Target, TrendingUp,
-  Lock, Unlock
+  Lock, Unlock, ChevronRight, ExternalLink, AlertCircle, Info,
+  Users, Building, Globe, Newspaper, PlayCircle, ArrowRight,
+  CheckSquare, DollarSign, GraduationCap, Heart, Search, Filter
 } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import toast from 'react-hot-toast'
@@ -23,6 +26,43 @@ import ResumeBuilder from '../../components/ResumeBuilder'
 import InternshipSearch from '../../components/InternshipSearch'
 import AIChatbot from '../../components/AIChatbot'
 
+interface Internship {
+  id: string
+  title: string
+  company: string
+  ministry: string
+  location: string
+  type: 'remote' | 'onsite' | 'hybrid'
+  duration: string
+  stipend: string
+  description: string
+  requirements: string[]
+  skills: string[]
+  applications: number
+  maxApplications: number
+  deadline: string
+  created_at: string
+  posted_by?: string
+}
+
+interface Notification {
+  id: string
+  title: string
+  message: string
+  type: 'info' | 'success' | 'warning' | 'error'
+  created_at: string
+  read: boolean
+}
+
+interface Update {
+  id: string
+  title: string
+  content: string
+  image?: string
+  date: string
+  category: string
+}
+
 export default function StudentDashboard() {
   const { user, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -33,7 +73,15 @@ export default function StudentDashboard() {
   const [documents, setDocuments] = useState<any[]>([])
   const [skills, setSkills] = useState<any[]>([])
   const [applications, setApplications] = useState<any[]>([])
-  const [notifications, setNotifications] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  
+  // New state for enhanced dashboard
+  const [internships, setInternships] = useState<Internship[]>([])
+  const [updates, setUpdates] = useState<Update[]>([])
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [showNotificationPopup, setShowNotificationPopup] = useState(false)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [realtimeSubscription, setRealtimeSubscription] = useState<any>(null)
 
   const getMenuItems = () => {
     const isProfileComplete = userData?.profile_completed || false
@@ -85,6 +133,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (user) {
       fetchAllData()
+      setupRealtimeSubscriptions()
       
       // Check URL parameters for tab
       const urlParams = new URLSearchParams(window.location.search)
@@ -108,7 +157,24 @@ export default function StudentDashboard() {
     } else if (user === null) {
       setLoading(false)
     }
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      if (realtimeSubscription) {
+        realtimeSubscription.unsubscribe()
+      }
+    }
   }, [user])
+
+  // Auto-slide updates every 5 seconds
+  useEffect(() => {
+    if (updates.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % updates.length)
+      }, 5000)
+      return () => clearInterval(interval)
+    }
+  }, [updates.length])
 
   const fetchAllData = async () => {
     try {
@@ -117,12 +183,122 @@ export default function StudentDashboard() {
         fetchDocuments(),
         fetchSkills(),
         fetchApplications(),
-        fetchNotifications()
+        fetchNotifications(),
+        fetchInternships(),
+        fetchUpdates()
       ])
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const setupRealtimeSubscriptions = () => {
+    // Subscribe to new internships
+    const internshipSubscription = supabase
+      .channel('internships')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'internships' },
+        (payload) => {
+          console.log('New internship posted:', payload.new)
+          setInternships(prev => [payload.new as Internship, ...prev])
+          
+          // Show notification popup for new internship
+          toast.success('🎉 New internship opportunity posted!', {
+            duration: 5000,
+            position: 'top-right'
+          })
+          
+          // Add to notifications
+          const newNotification: Notification = {
+            id: `internship-${payload.new.id}`,
+            title: 'New Internship Posted',
+            message: `${payload.new.title} at ${payload.new.company}`,
+            type: 'info',
+            created_at: new Date().toISOString(),
+            read: false
+          }
+          setNotifications(prev => [newNotification, ...prev])
+          setUnreadNotifications(prev => prev + 1)
+        }
+      )
+      .subscribe()
+
+    // Subscribe to notifications
+    const notificationSubscription = supabase
+      .channel('notifications')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user?.id}` },
+        (payload) => {
+          console.log('New notification:', payload.new)
+          setNotifications(prev => [payload.new as Notification, ...prev])
+          setUnreadNotifications(prev => prev + 1)
+          setShowNotificationPopup(true)
+        }
+      )
+      .subscribe()
+
+    setRealtimeSubscription({ internshipSubscription, notificationSubscription })
+  }
+
+  const fetchInternships = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('internships')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (error) throw error
+      if (data) setInternships(data)
+    } catch (error) {
+      console.error('Error fetching internships:', error)
+    }
+  }
+
+  const fetchUpdates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('updates')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(5)
+
+      if (error) {
+        // If table doesn't exist, use mock data
+        const mockUpdates: Update[] = [
+          {
+            id: '1',
+            title: 'PM Internship Program 2024 Launch',
+            content: 'The Prime Minister has launched the new internship program with enhanced benefits and opportunities.',
+            image: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800',
+            date: new Date().toISOString(),
+            category: 'Announcement'
+          },
+          {
+            id: '2',
+            title: 'Digital India Initiative Expansion',
+            content: 'New internship opportunities in AI, Machine Learning, and Digital Governance.',
+            image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800',
+            date: new Date(Date.now() - 86400000).toISOString(),
+            category: 'Technology'
+          },
+          {
+            id: '3',
+            title: 'Skill Development Programs',
+            content: 'Enhanced skill development programs for students across various domains.',
+            image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800',
+            date: new Date(Date.now() - 172800000).toISOString(),
+            category: 'Education'
+          }
+        ]
+        setUpdates(mockUpdates)
+      } else {
+        setUpdates(data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching updates:', error)
     }
   }
 
@@ -280,77 +456,260 @@ export default function StudentDashboard() {
     const verificationStatus = getVerificationStatus()
     
     return (
-      <div className="space-y-6">
-        {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold mb-2">
-                Welcome back, {userData?.full_name || user?.email?.split('@')[0] || 'Student'}! 👋
-              </h1>
-              <p className="text-blue-100">
-                Ready to take the next step in your career journey?
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold">{profileCompletion}%</div>
-              <div className="text-sm text-blue-100">Profile Complete</div>
+      <div className="space-y-8">
+        {/* Government Header Banner */}
+        <div className="bg-gradient-to-r from-orange-600 via-white to-green-600 rounded-lg p-1">
+          <div className="bg-white rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Image
+                  src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
+                  alt="Government of India"
+                  width={80}
+                  height={80}
+                  className="object-contain"
+                />
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    PM Internship Portal
+                  </h1>
+                  <p className="text-lg text-gray-700 mb-1">
+                    Welcome, {userData?.full_name || user?.email?.split('@')[0] || 'Student'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    🇮🇳 Empowering India's Youth Through Skill Development
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-4xl font-bold text-orange-600">{profileCompletion}%</div>
+                <div className="text-sm text-gray-600">Profile Complete</div>
+                <div className="text-xs text-green-600 mt-1">
+                  {profileCompletion === 100 ? '✅ Ready for Internships' : '⏳ Complete to unlock features'}
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Quick Stats */}
+        {/* Sliding Updates Banner */}
+        {updates.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+            <div className="bg-blue-600 text-white px-4 py-2 flex items-center space-x-2">
+              <Newspaper className="w-5 h-5" />
+              <span className="font-semibold">Latest Updates</span>
+            </div>
+            <div className="relative h-32 overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentSlide}
+                  initial={{ x: 300, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -300, opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 p-4 flex items-center space-x-4"
+                >
+                  {updates[currentSlide]?.image && (
+                    <Image
+                      src={updates[currentSlide].image}
+                      alt={updates[currentSlide].title}
+                      width={80}
+                      height={80}
+                      className="rounded-lg object-cover"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {updates[currentSlide]?.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {updates[currentSlide]?.content}
+                    </p>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        {updates[currentSlide]?.category}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(updates[currentSlide]?.date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+              
+              {/* Slide indicators */}
+              <div className="absolute bottom-2 right-4 flex space-x-1">
+                {updates.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      index === currentSlide ? 'bg-blue-600' : 'bg-blue-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Government Statistics Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <FileCheck className="w-6 h-6 text-blue-600" />
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            className="bg-white rounded-lg p-6 border-l-4 border-blue-500 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Profile Status</p>
+                <p className="text-3xl font-bold text-blue-600">{profileCompletion}%</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {profileCompletion === 100 ? 'Complete' : 'In Progress'}
+                </p>
               </div>
-              <div className="ml-4">
+              <div className="p-3 bg-blue-100 rounded-full">
+                <User className="w-8 h-8 text-blue-600" />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            className="bg-white rounded-lg p-6 border-l-4 border-green-500 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm font-medium text-gray-600">Documents</p>
-                <p className="text-2xl font-semibold text-gray-900">{verificationStatus.verified}/{verificationStatus.total}</p>
-                <p className="text-xs text-green-600">Verified</p>
+                <p className="text-3xl font-bold text-green-600">{verificationStatus.verified}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {verificationStatus.verified}/{verificationStatus.total} Verified
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <FileCheck className="w-8 h-8 text-green-600" />
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-            <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <Award className="w-6 h-6 text-yellow-600" />
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            className="bg-white rounded-lg p-6 border-l-4 border-orange-500 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Internships</p>
+                <p className="text-3xl font-bold text-orange-600">{internships.length}</p>
+                <p className="text-xs text-gray-500 mt-1">Available Now</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Skills</p>
-                <p className="text-2xl font-semibold text-gray-900">{skills.length}</p>
-                <p className="text-xs text-yellow-600">Assessed</p>
+              <div className="p-3 bg-orange-100 rounded-full">
+                <Briefcase className="w-8 h-8 text-orange-600" />
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <Target className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Applications</p>
-                <p className="text-2xl font-semibold text-gray-900">{applications.length}</p>
-                <p className="text-xs text-green-600">Submitted</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-            <div className="flex items-center">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <Bell className="w-6 h-6 text-red-600" />
-              </div>
-              <div className="ml-4">
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            className="bg-white rounded-lg p-6 border-l-4 border-red-500 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm font-medium text-gray-600">Notifications</p>
-                <p className="text-2xl font-semibold text-gray-900">{notifications.length}</p>
-                <p className="text-xs text-red-600">Unread</p>
+                <p className="text-3xl font-bold text-red-600">{unreadNotifications}</p>
+                <p className="text-xs text-gray-500 mt-1">Unread Messages</p>
+              </div>
+              <div className="p-3 bg-red-100 rounded-full">
+                <Bell className="w-8 h-8 text-red-600" />
               </div>
             </div>
+          </motion.div>
+        </div>
+
+        {/* Real-time Internships Section */}
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 rounded-t-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Briefcase className="w-6 h-6" />
+                <h2 className="text-xl font-bold">Latest Internship Opportunities</h2>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-sm">Live Updates</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-6">
+            {internships.length > 0 ? (
+              <div className="space-y-4">
+                {internships.slice(0, 3).map((internship) => (
+                  <motion.div
+                    key={internship.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-2">{internship.title}</h3>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                          <div className="flex items-center space-x-1">
+                            <Building className="w-4 h-4" />
+                            <span>{internship.company}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{internship.location}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <DollarSign className="w-4 h-4" />
+                            <span>{internship.stipend}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {internship.skills.slice(0, 3).map((skill) => (
+                            <span key={skill} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs text-gray-500">
+                          Posted {new Date(internship.created_at).toLocaleDateString()}
+                        </span>
+                        <Link 
+                          href="/internships"
+                          className="block mt-2 bg-orange-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-orange-700 transition-colors"
+                        >
+                          Apply Now
+                        </Link>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+                
+                <div className="text-center pt-4">
+                  <Link 
+                    href="/internships"
+                    className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    <span>View All Internships</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Briefcase className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Internships Available</h3>
+                <p className="text-gray-600 mb-4">New opportunities will appear here in real-time</p>
+                <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+                  <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                  <span>Waiting for new postings...</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -429,6 +788,234 @@ export default function StudentDashboard() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Government Information Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Internship Schemes */}
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-4 rounded-t-lg">
+              <div className="flex items-center space-x-3">
+                <GraduationCap className="w-6 h-6" />
+                <h2 className="text-xl font-bold">Internship Schemes</h2>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="border-l-4 border-green-500 pl-4">
+                  <h3 className="font-semibold text-gray-900">PM Internship Program</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Government-sponsored internships across various ministries and departments.
+                  </p>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <CheckSquare className="w-4 h-4 text-green-600" />
+                    <span className="text-xs text-green-700">₹25,000 - ₹50,000 stipend</span>
+                  </div>
+                </div>
+                
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h3 className="font-semibold text-gray-900">Digital India Initiative</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Technology-focused internships in AI, ML, and digital governance.
+                  </p>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <CheckSquare className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs text-blue-700">6-12 months duration</span>
+                  </div>
+                </div>
+                
+                <div className="border-l-4 border-purple-500 pl-4">
+                  <h3 className="font-semibold text-gray-900">Skill Development Program</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Hands-on training with industry mentors and certification.
+                  </p>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <CheckSquare className="w-4 h-4 text-purple-600" />
+                    <span className="text-xs text-purple-700">Certificate included</span>
+                  </div>
+                </div>
+              </div>
+              
+              <Link href="/schemes" className="block w-full mt-6 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-center">
+                Learn More About Schemes
+              </Link>
+            </div>
+          </div>
+
+          {/* Roadmap */}
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white px-6 py-4 rounded-t-lg">
+              <div className="flex items-center space-x-3">
+                <Target className="w-6 h-6" />
+                <h2 className="text-xl font-bold">Application Roadmap</h2>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-bold text-green-600">1</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Complete Profile</h3>
+                    <p className="text-sm text-gray-600">Fill all required information and upload documents</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-bold text-blue-600">2</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Document Verification</h3>
+                    <p className="text-sm text-gray-600">Verify Aadhaar and educational certificates</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-bold text-yellow-600">3</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Skills Assessment</h3>
+                    <p className="text-sm text-gray-600">Take online tests to showcase your abilities</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-bold text-purple-600">4</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Apply for Internships</h3>
+                    <p className="text-sm text-gray-600">Browse and apply to matching opportunities</p>
+                  </div>
+                </div>
+              </div>
+              
+              <Link href="/roadmap" className="block w-full mt-6 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors text-center">
+                View Complete Roadmap
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Eligibility & Support */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Eligibility Criteria */}
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4 rounded-t-lg">
+              <div className="flex items-center space-x-3">
+                <CheckCircle className="w-6 h-6" />
+                <h2 className="text-xl font-bold">Eligibility Criteria</h2>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Age Requirement</h3>
+                    <p className="text-sm text-gray-600">18-28 years old</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Education</h3>
+                    <p className="text-sm text-gray-600">Minimum 12th pass or equivalent</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Citizenship</h3>
+                    <p className="text-sm text-gray-600">Indian citizen with valid Aadhaar</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Language</h3>
+                    <p className="text-sm text-gray-600">Basic English/Hindi proficiency</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Info className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-900">Additional Benefits</span>
+                </div>
+                <ul className="text-sm text-blue-800 mt-2 space-y-1">
+                  <li>• Government certificate upon completion</li>
+                  <li>• Skill development training</li>
+                  <li>• Mentorship from industry experts</li>
+                  <li>• Networking opportunities</li>
+                </ul>
+              </div>
+              
+              <Link href="/eligibility" className="block w-full mt-6 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-center">
+                Check Full Eligibility
+              </Link>
+            </div>
+          </div>
+
+          {/* Support & Help */}
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white px-6 py-4 rounded-t-lg">
+              <div className="flex items-center space-x-3">
+                <HelpCircle className="w-6 h-6" />
+                <h2 className="text-xl font-bold">Support & Help</h2>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <Phone className="w-5 h-5 text-teal-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Helpline</h3>
+                    <p className="text-sm text-gray-600">1800-XXX-XXXX (Toll Free)</p>
+                    <p className="text-xs text-gray-500">Mon-Fri, 9 AM - 6 PM</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <Mail className="w-5 h-5 text-teal-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Email Support</h3>
+                    <p className="text-sm text-gray-600">support@pminternship.gov.in</p>
+                    <p className="text-xs text-gray-500">Response within 24 hours</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <MessageSquare className="w-5 h-5 text-teal-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Live Chat</h3>
+                    <p className="text-sm text-gray-600">Available on website</p>
+                    <p className="text-xs text-gray-500">AI-powered instant support</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <Globe className="w-5 h-5 text-teal-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">FAQ & Resources</h3>
+                    <p className="text-sm text-gray-600">Comprehensive help center</p>
+                    <p className="text-xs text-gray-500">Step-by-step guides available</p>
+                  </div>
+                </div>
+              </div>
+              
+              <Link href="/support" className="block w-full mt-6 bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700 transition-colors text-center">
+                Contact Support Team
+              </Link>
             </div>
           </div>
         </div>
@@ -1063,7 +1650,7 @@ export default function StudentDashboard() {
               />
               <div className="flex-1">
                 <h1 className="text-xl font-semibold text-gray-900">PM Internship & Resume Verifier</h1>
-                <p className="text-sm text-gray-600">MINISTRY OF CORPORATE AFFAIRS</p>
+                <p className="text-sm text-gray-600">MINISTRY OF EDUCATION</p>
                 <p className="text-xs text-gray-500">Government of India</p>
               </div>
             </div>
@@ -1246,6 +1833,84 @@ export default function StudentDashboard() {
         </main>
       </div>
       
+      {/* Notification Popup */}
+      <AnimatePresence>
+        {showNotificationPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <Bell className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">New Notification</h3>
+                </div>
+                <button
+                  onClick={() => setShowNotificationPopup(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              {notifications.length > 0 && (
+                <div className="space-y-3">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-900 mb-1">
+                      {notifications[0]?.title}
+                    </h4>
+                    <p className="text-sm text-blue-800">
+                      {notifications[0]?.message}
+                    </p>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs text-blue-600">
+                        {new Date(notifications[0]?.created_at).toLocaleString()}
+                      </span>
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        notifications[0]?.type === 'success' ? 'bg-green-100 text-green-800' :
+                        notifications[0]?.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                        notifications[0]?.type === 'error' ? 'bg-red-100 text-red-800' :
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {notifications[0]?.type}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={() => setShowNotificationPopup(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowNotificationPopup(false)
+                    setActiveTab('notifications')
+                  }}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  View All
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* AI Chatbot */}
       <AIChatbot />
     </div>

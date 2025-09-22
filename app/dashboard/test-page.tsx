@@ -137,7 +137,7 @@ export default function TestStudentDashboard() {
               />
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">PM Internship & Resume Verifier</h1>
-                <p className="text-xs text-gray-600">Ministry of Corporate Affairs - Student Portal (Test Mode)</p>
+                <p className="text-xs text-gray-600">Ministry of Education - Student Portal (Test Mode)</p>
               </div>
             </div>
             

@@ -362,7 +362,7 @@ export default function CleanDashboard() {
               />
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">PM Internship & Resume Verifier</h1>
-                <p className="text-xs text-gray-600">Ministry of Corporate Affairs</p>
+                <p className="text-xs text-gray-600">Ministry of Education</p>
               </div>
             </div>
             
