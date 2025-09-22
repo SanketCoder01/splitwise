@@ -12,6 +12,15 @@ import { toast } from 'react-hot-toast'
 import { useAuth } from '../../../../contexts/AuthContext'
 import { supabase } from '../../../../lib/supabase'
 
+interface ProfileData {
+  id?: string
+  full_name?: string
+  email?: string
+  phone?: string
+  resume_url?: string
+  [key: string]: any
+}
+
 const mockInternship = {
   id: '1',
   title: 'Digital India Web Development Intern',
@@ -26,7 +35,7 @@ export default function InternshipApplicationPage() {
   const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
-  const [profileData, setProfileData] = useState<any>({})
+  const [profileData, setProfileData] = useState<ProfileData>({})
   const [hasResume, setHasResume] = useState(false)
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [showResumeViewer, setShowResumeViewer] = useState(false)

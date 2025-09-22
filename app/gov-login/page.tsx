@@ -6,8 +6,8 @@ import { Eye, EyeOff, Shield, User, Building2, Lock, CheckCircle, AlertCircle, L
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from 'react-hot-toast'
+import { supabase } from '../../lib/supabase'
 
 export default function GovernmentLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -22,7 +22,6 @@ export default function GovernmentLoginPage() {
   const [captchaCode, setCaptchaCode] = useState('G7X9M')
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const router = useRouter()
-  const supabase = createClientComponentClient()
 
   useEffect(() => {
     const generateCaptcha = () => {
