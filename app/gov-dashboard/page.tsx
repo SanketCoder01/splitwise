@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase'
 import StudentVerification from '../../components/StudentVerification'
 import SmartAllocation from '../../components/SmartAllocation'
 import ReportsAnalytics from '../../components/ReportsAnalytics'
+import InternshipVerification from '../../components/InternshipVerification'
 
 export default function GovernmentDashboard() {
   const { user, signOut } = useAuth()
@@ -28,6 +29,7 @@ export default function GovernmentDashboard() {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: BarChart3 },
+    { id: 'internship-verification', label: 'Internship Verification', icon: CheckCircle },
     { id: 'internship-management', label: 'Internship Management', icon: Briefcase },
     { id: 'student-verification', label: 'Student Verification', icon: FileCheck },
     { id: 'resume-verifier', label: 'Resume Verifier AI', icon: Shield },

@@ -2,24 +2,24 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff, Shield, User, Building2, Lock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Shield, Building2, Lock, CheckCircle, AlertCircle, Loader2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 
-export default function GovernmentLoginPage() {
+export default function RecruiterLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    employeeId: '',
+    organizationId: '',
     password: '',
     captcha: '',
     otp: ''
   })
   const [step, setStep] = useState<'login' | 'otp'>('login')
-  const [captchaCode, setCaptchaCode] = useState('G7X9M')
+  const [captchaCode, setCaptchaCode] = useState('R8K2M')
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const router = useRouter()
 
@@ -38,8 +38,8 @@ export default function GovernmentLoginPage() {
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {}
     
-    if (!formData.employeeId) {
-      newErrors.employeeId = 'Employee ID is required'
+    if (!formData.organizationId) {
+      newErrors.organizationId = 'Organization ID is required'
     }
     
     if (!formData.password) {
@@ -66,36 +66,36 @@ export default function GovernmentLoginPage() {
     setIsLoading(true)
     
     try {
-      // Check government official credentials
-      const { data: official, error } = await supabase
-        .from('government_officials')
+      // Check recruiter credentials
+      const { data: recruiter, error } = await supabase
+        .from('recruiters')
         .select('*')
-        .eq('employee_id', formData.employeeId)
+        .eq('organization_id', formData.organizationId)
         .single()
       
-      if (error || !official) {
-        setErrors({ employeeId: 'Invalid Employee ID' })
+      if (error || !recruiter) {
+        setErrors({ organizationId: 'Invalid Organization ID' })
         setIsLoading(false)
         return
       }
       
       // Simple password check (in production, use proper hashing)
       const validPasswords = {
-        'GOV001': 'password123',
-        'GOV002': 'password123', 
-        'GOV003': 'password123'
+        'ORG001': 'recruiter123',
+        'ORG002': 'recruiter123', 
+        'ORG003': 'recruiter123'
       }
       
-      if (validPasswords[formData.employeeId as keyof typeof validPasswords] !== formData.password) {
+      if (validPasswords[formData.organizationId as keyof typeof validPasswords] !== formData.password) {
         setErrors({ password: 'Invalid Password' })
         setIsLoading(false)
         return
       }
       
-      // Store official data in session storage for gov dashboard
-      sessionStorage.setItem('government_official', JSON.stringify(official))
+      // Store recruiter data in session storage
+      sessionStorage.setItem('recruiter_data', JSON.stringify(recruiter))
       
-      toast.success(`Welcome ${official.name}!`)
+      toast.success(`Welcome ${recruiter.organization_name}!`)
       setStep('otp')
       
     } catch (error) {
@@ -116,59 +116,11 @@ export default function GovernmentLoginPage() {
     
     setIsLoading(true)
     await new Promise(resolve => setTimeout(resolve, 1500))
-    router.push('/gov-dashboard')
+    router.push('/recruiter-dashboard')
   }
 
   return (
     <div className="min-h-screen bg-white">
-      <style jsx>{`
-        .sliding-images-container {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          overflow: hidden;
-        }
-        
-        .sliding-image-login {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          animation: slideRightToLeftLogin 20s linear infinite;
-        }
-        
-        .sliding-image-login:nth-child(1) { 
-          animation-delay: 0s; 
-        }
-        .sliding-image-login:nth-child(2) { 
-          animation-delay: 5s; 
-        }
-        .sliding-image-login:nth-child(3) { 
-          animation-delay: 10s; 
-        }
-        .sliding-image-login:nth-child(4) { 
-          animation-delay: 15s; 
-        }
-        
-        @keyframes slideRightToLeftLogin {
-          0% { 
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          10% { 
-            opacity: 0.7;
-          }
-          90% { 
-            opacity: 0.7;
-          }
-          100% { 
-            transform: translateX(-100%);
-            opacity: 0;
-          }
-        }
-      `}</style>
-
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="container mx-auto">
@@ -198,7 +150,7 @@ export default function GovernmentLoginPage() {
                   className="object-contain"
                 />
                 <div className="text-center">
-                  <h1 className="text-xl font-bold text-gray-900">PM Internship & Resume Verifier</h1>
+                  <h1 className="text-xl font-bold text-gray-900">PM Internship Portal</h1>
                   <p className="text-xs text-gray-600">MINISTRY OF EDUCATION</p>
                   <p className="text-xs text-gray-500">Government of India</p>
                 </div>
@@ -209,82 +161,51 @@ export default function GovernmentLoginPage() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
-        {/* Left Side - Sliding Images */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-blue-100">
-          {/* Sliding Images */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="sliding-images-container">
-              <div className="sliding-image-login">
-                <Image
-                  src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=600&fit=crop"
-                  alt="Government building"
-                  width={800}
-                  height={600}
-                  className="object-cover w-full h-full opacity-70"
-                />
-              </div>
-              <div className="sliding-image-login">
-                <Image
-                  src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=600&fit=crop"
-                  alt="Government office"
-                  width={800}
-                  height={600}
-                  className="object-cover w-full h-full opacity-70"
-                />
-              </div>
-              <div className="sliding-image-login">
-                <Image
-                  src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=600&fit=crop"
-                  alt="Digital government"
-                  width={800}
-                  height={600}
-                  className="object-cover w-full h-full opacity-70"
-                />
-              </div>
-              <div className="sliding-image-login">
-                <Image
-                  src="https://images.unsplash.com/photo-1486312338219-ce68e2c6b696?w=800&h=600&fit=crop"
-                  alt="Government services"
-                  width={800}
-                  height={600}
-                  className="object-cover w-full h-full opacity-70"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Content Overlay */}
+        {/* Left Side - Information */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-green-100">
           <div className="relative z-10 flex flex-col justify-center h-full p-8">
-            <div className="text-center text-white mb-8">
-              <h2 className="text-4xl font-bold mb-4">Welcome to</h2>
-              <h1 className="text-5xl font-bold mb-6 text-green-400">Government Portal</h1>
-              <p className="text-xl mb-8 leading-relaxed max-w-md">
-                Secure access for government officials to manage internship programs and verify student credentials
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold mb-4 text-gray-800">Recruiter Portal</h2>
+              <h1 className="text-3xl font-bold mb-6 text-blue-600">Post Internship Opportunities</h1>
+              <p className="text-lg mb-8 leading-relaxed max-w-md text-gray-700">
+                Government-approved organizations and departments can post internship opportunities for students
               </p>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-6 border border-white/30">
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold">200+</div>
-                    <div className="text-sm opacity-90">Departments</div>
+              
+              {/* Eligibility Steps */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 border border-gray-200 mb-6">
+                <h3 className="text-lg font-bold mb-4 text-gray-800">Eligibility Requirements</h3>
+                <div className="space-y-3 text-left">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-blue-600">1</span>
+                    </div>
+                    <p className="text-sm text-gray-700">Government departments, ministries, or PSUs</p>
                   </div>
-                  <div>
-                    <div className="text-2xl font-bold">1000+</div>
-                    <div className="text-sm opacity-90">Officials</div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-blue-600">2</span>
+                    </div>
+                    <p className="text-sm text-gray-700">Government-approved organizations</p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-blue-600">3</span>
+                    </div>
+                    <p className="text-sm text-gray-700">Private companies partnered with government</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Text below images */}
-            <div className="text-center text-white/90 mt-auto">
-              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-6 border border-white/20">
-                <h3 className="text-xl font-bold mb-3">Official Government Access</h3>
-                <p className="text-sm leading-relaxed max-w-lg mx-auto">
-                  Ministry of Education - Authorized personnel portal for managing PM Internship programs.
-                  Secure access for government officials to oversee student applications and verification processes.
+            {/* Process Flow */}
+            <div className="text-center text-gray-700 mt-auto">
+              <div className="bg-white/60 backdrop-blur-sm rounded-lg p-6 border border-gray-200">
+                <h3 className="text-lg font-bold mb-3">Posting Process</h3>
+                <p className="text-sm leading-relaxed">
+                  Submit internship details → Government verification → Approval → Live posting → Student applications → Selection process
                 </p>
-                <div className="mt-4 text-xs opacity-75">
-                  <p>🔐 High Security | 👥 Official Access | 🏛️ Government Verified</p>
+                <div className="mt-4 text-xs text-gray-600">
+                  <p>🔐 Secure Process | ✅ Government Verified | 📋 Real-time Updates</p>
                 </div>
               </div>
             </div>
@@ -299,6 +220,17 @@ export default function GovernmentLoginPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
+              {/* Back Button */}
+              <div className="mb-6">
+                <Link 
+                  href="/gov-login"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="text-sm">Back to Portal Selection</span>
+                </Link>
+              </div>
+
               {/* Header */}
               <div className="text-center mb-8">
                 <motion.div
@@ -307,39 +239,16 @@ export default function GovernmentLoginPage() {
                   transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
                   className="flex justify-center mb-6"
                 >
-                  <div className="w-20 h-20 bg-gradient-to-br from-green-600 to-blue-700 rounded-full flex items-center justify-center shadow-lg">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-green-600 rounded-full flex items-center justify-center shadow-lg">
                     <Building2 className="w-10 h-10 text-white" />
                   </div>
                 </motion.div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Official Portal Access</h2>
-                <p className="text-gray-600">Secure login for government officials and approved recruiters</p>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Recruiter Login</h2>
+                <p className="text-gray-600">Access for approved organizations</p>
                 <div className="flex items-center justify-center mt-4 space-x-2">
-                  <Lock className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-600 font-medium">High Security Access</span>
+                  <Lock className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm text-blue-600 font-medium">Verified Access Only</span>
                 </div>
-              </div>
-
-              {/* Login Type Selection */}
-              <div className="mb-6">
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    className="flex items-center justify-center space-x-2 p-3 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-all"
-                  >
-                    <Shield className="w-5 h-5 text-green-600" />
-                    <span className="text-sm font-medium text-gray-700">Government Official</span>
-                  </button>
-                  <Link
-                    href="/recruiter-login"
-                    className="flex items-center justify-center space-x-2 p-3 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all"
-                  >
-                    <Building2 className="w-5 h-5 text-blue-600" />
-                    <span className="text-sm font-medium text-gray-700">Recruiter/Company</span>
-                  </Link>
-                </div>
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  Select your access type to continue
-                </p>
               </div>
 
               <AnimatePresence mode="wait">
@@ -354,17 +263,17 @@ export default function GovernmentLoginPage() {
                   >
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Employee ID
+                        Organization ID
                       </label>
                       <input
                         type="text"
-                        value={formData.employeeId}
-                        onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        placeholder="Enter your employee ID"
+                        value={formData.organizationId}
+                        onChange={(e) => setFormData({...formData, organizationId: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        placeholder="Enter your organization ID"
                       />
-                      {errors.employeeId && (
-                        <p className="text-red-500 text-sm mt-1">{errors.employeeId}</p>
+                      {errors.organizationId && (
+                        <p className="text-red-500 text-sm mt-1">{errors.organizationId}</p>
                       )}
                     </div>
 
@@ -377,7 +286,7 @@ export default function GovernmentLoginPage() {
                           type={showPassword ? "text" : "password"}
                           value={formData.password}
                           onChange={(e) => setFormData({...formData, password: e.target.value})}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all pr-12"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all pr-12"
                           placeholder="Enter your password"
                         />
                         <button
@@ -402,7 +311,7 @@ export default function GovernmentLoginPage() {
                           type="text"
                           value={formData.captcha}
                           onChange={(e) => setFormData({...formData, captcha: e.target.value})}
-                          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                           placeholder="Enter code"
                         />
                         <div className="bg-gray-100 px-4 py-3 rounded-lg border font-mono text-lg tracking-wider">
@@ -419,7 +328,7 @@ export default function GovernmentLoginPage() {
                       whileTap={{ scale: 0.98 }}
                       type="submit"
                       disabled={isLoading}
-                      className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-blue-600 to-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLoading ? (
                         <div className="flex items-center justify-center">
@@ -454,7 +363,7 @@ export default function GovernmentLoginPage() {
                         type="text"
                         value={formData.otp}
                         onChange={(e) => setFormData({...formData, otp: e.target.value})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-center text-2xl tracking-widest"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-center text-2xl tracking-widest"
                         placeholder="000000"
                         maxLength={6}
                       />
@@ -468,7 +377,7 @@ export default function GovernmentLoginPage() {
                       whileTap={{ scale: 0.98 }}
                       type="submit"
                       disabled={isLoading}
-                      className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-blue-600 to-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLoading ? (
                         <div className="flex items-center justify-center">
@@ -493,9 +402,9 @@ export default function GovernmentLoginPage() {
 
               <div className="mt-8 text-center">
                 <p className="text-sm text-gray-600">
-                  Need help? Contact{' '}
-                  <Link href="/support" className="text-green-600 hover:text-green-700 font-medium">
-                    IT Support
+                  Need access credentials? Contact{' '}
+                  <Link href="/support" className="text-blue-600 hover:text-blue-700 font-medium">
+                    Government Support
                   </Link>
                 </p>
               </div>
