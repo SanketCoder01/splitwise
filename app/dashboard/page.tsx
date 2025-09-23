@@ -1077,21 +1077,62 @@ export default function StudentDashboard() {
     <div className="space-y-6">
       {/* Profile Header */}
       <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6 text-white">
-        <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-            <User className="w-8 h-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">My Complete Profile</h1>
-            <p className="text-green-100">View all your submitted information</p>
-            <div className="flex items-center space-x-4 mt-2">
-              <span className="text-sm bg-white bg-opacity-20 px-2 py-1 rounded">
-                Profile {userData?.profile_completed ? 'Completed' : 'In Progress'}
-              </span>
-              <span className="text-sm bg-white bg-opacity-20 px-2 py-1 rounded">
-                Step {userData?.profile_step || 1} of 6
-              </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="relative">
+              {userData?.profile_image ? (
+                <img 
+                  src={userData.profile_image} 
+                  alt="Profile" 
+                  className="w-20 h-20 rounded-full object-cover border-4 border-white border-opacity-30"
+                />
+              ) : (
+                <div className="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center border-4 border-white border-opacity-30">
+                  <User className="w-10 h-10 text-white" />
+                </div>
+              )}
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                {userData?.profile_completed ? (
+                  <CheckCircle className="w-4 h-4 text-white" />
+                ) : (
+                  <Clock className="w-4 h-4 text-white" />
+                )}
+              </div>
             </div>
+            <div>
+              <h1 className="text-2xl font-bold">
+                {userData?.full_name || 'Complete Your Profile'}
+              </h1>
+              <p className="text-green-100 text-lg">
+                Student ID: PMI-{userData?.id?.slice(-6)?.toUpperCase() || 'XXXXXX'}
+              </p>
+              <div className="flex items-center space-x-4 mt-2">
+                <span className="text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                  {userData?.profile_completed ? '✅ Profile Complete' : '⏳ In Progress'}
+                </span>
+                <span className="text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                  Step {userData?.profile_step || 1} of 6
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="text-right">
+            <div className="text-4xl font-bold text-white mb-1">
+              {getProfileCompletion()}%
+            </div>
+            <p className="text-green-100 text-sm">Complete</p>
+            {userData?.profile_completed && (
+              <div className="mt-2">
+                <Link
+                  href="/resume-verifier"
+                  className="inline-flex items-center space-x-2 bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg text-sm transition-colors"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>Verify Resume</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

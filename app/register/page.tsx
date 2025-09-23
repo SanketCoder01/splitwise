@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Eye, EyeOff, Shield, Lock, User, Mail, Phone, RefreshCw, AlertCircle, CheckCircle, X } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Eye, EyeOff, Shield, Lock, User, Mail, Phone, RefreshCw, AlertCircle, CheckCircle, X, Volume2 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
@@ -32,6 +34,13 @@ export default function RegisterPage() {
 
   const password = watch('password')
 
+  // Generate captcha on component mount and when reaching step 3
+  useEffect(() => {
+    if (currentStep === 3) {
+      generateCaptcha()
+    }
+  }, [currentStep])
+
   // Debug popup state changes
   useEffect(() => {
     console.log('🔄 Popup state changed - showSuccessPopup:', showSuccessPopup)
@@ -56,57 +65,42 @@ export default function RegisterPage() {
       return
     }
 
-    // If moving from step 1 to step 2, check if email already exists
+    // Check if email already exists when moving from step 1 to step 2
     if (currentStep === 1) {
       setIsLoading(true)
       
       try {
         const emailValue = watch('email')
-        console.log('🔍 Fast checking email:', emailValue)
+        console.log('🔍 Checking email availability:', emailValue)
         
-        // Fast email check with timeout
-        const checkPromise = supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', emailValue)
-          .limit(1)
-          .single()
-
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Email check timeout')), 3000)
-        )
-
-        const { data: existingUser, error: checkError } = await Promise.race([
-          checkPromise,
-          timeoutPromise
-        ]) as any
-
-        if (existingUser) {
+        // Check if email exists in Supabase auth
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailValue,
+          password: 'dummy-password-for-check'
+        })
+        
+        // If no error with invalid credentials, it means email exists
+        if (error && error.message.includes('Invalid login credentials')) {
+          // Email exists but wrong password - show existing user popup
           console.log('❌ Email already registered')
           setShowExistingUserPopup(true)
-          toast.error('This email is already registered. Please try logging in instead.')
+          setIsLoading(false)
+          return
+        } else if (!error) {
+          // Successful login means user exists
+          console.log('❌ Email already registered')
+          setShowExistingUserPopup(true)
+          setIsLoading(false)
           return
         }
-
-        // If no existing user found or timeout, proceed
-        if (checkError && checkError.code !== 'PGRST116' && !checkError.message?.includes('timeout')) {
-          console.error('❌ Database error:', checkError)
-          toast.error('Database error. Please try again.')
-          return
-        }
-
+        
+        // If we get here, email doesn't exist, proceed to next step
         console.log('✅ Email available, proceeding')
         setCurrentStep(currentStep + 1)
         
       } catch (error: any) {
-        console.error('❌ Email check error:', error)
-        if (error.message?.includes('timeout')) {
-          console.log('⚠️ Timeout occurred, proceeding anyway')
-          toast.error('Email check timed out, proceeding anyway...')
-          setCurrentStep(currentStep + 1)
-        } else {
-          toast.error('Unable to verify email. Please try again.')
-        }
+        console.log('⚠️ Email check failed, proceeding anyway')
+        setCurrentStep(currentStep + 1)
       } finally {
         setIsLoading(false)
       }
@@ -129,6 +123,7 @@ export default function RegisterPage() {
     // Validation checks first
     if (data.captcha !== captcha) {
       toast.error('Invalid captcha. Please check and try again.')
+      generateCaptcha() // Generate new captcha on failure
       return
     }
 
@@ -136,6 +131,22 @@ export default function RegisterPage() {
       toast.error('Passwords do not match.')
       return
     }
+
+    setIsLoading(true)
+
+    try {
+      // Register user with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+      })
+
+      if (authError) {
+        console.error('Auth error:', authError)
+        toast.error(authError.message || 'Registration failed. Please try again.')
+        setIsLoading(false)
+        return
+      }
 
       if (authData.user) {
         // Create profile in profiles table
@@ -158,9 +169,11 @@ export default function RegisterPage() {
 
         setShowSuccessPopup(true)
         
+        // Auto-redirect after 5 seconds
         setTimeout(() => {
+          setShowSuccessPopup(false)
           router.push('/login')
-        }, 3000)
+        }, 5000)
       }
 
     } catch (error: any) {
@@ -191,6 +204,11 @@ export default function RegisterPage() {
     }
   }
 
+  const handleProceedToLogin = () => {
+    setShowSuccessPopup(false)
+    router.push('/login')
+  }
+
   // Success popup component
   const SuccessPopup = () => {
     console.log(' Rendering SuccessPopup component')
@@ -205,20 +223,21 @@ export default function RegisterPage() {
         >
           <div className="mb-6">
             <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-4 animate-pulse" />
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Registration Form Complete!</h3>
-            <p className="text-lg text-blue-600 font-medium">Ready to create your account with email verification</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Account Created Successfully! 🎉</h3>
+            <p className="text-lg text-green-600 font-medium">Welcome to PM Internship Portal</p>
           </div>
           
-          <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg mb-6">
-            <div className="text-center space-y-3">
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-lg mb-6">
+            <div className="text-center space-y-4">
               <div className="flex items-center justify-center space-x-2">
-                <span className="text-2xl"></span>
-                <p className="font-semibold text-blue-800">Form Data Validated Successfully!</p>
+                <span className="text-2xl">📧</span>
+                <p className="font-semibold text-blue-800">Check Your Email for Confirmation</p>
               </div>
               
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <span></span>
-                <p>We'll send a verification email that you must confirm before login</p>
+              <div className="text-sm text-gray-700 space-y-2">
+                <p>We've sent a verification email to your registered email address.</p>
+                <p className="font-medium text-orange-600">⚠️ You must confirm your email before you can login.</p>
+                <p>Check your inbox and click the verification link to activate your account.</p>
               </div>
             </div>
           </div>
@@ -228,19 +247,12 @@ export default function RegisterPage() {
               onClick={handleProceedToLogin}
               className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-6 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
             >
-              <span>Create Account & Send Verification Email</span>
+              <span>Go to Login Page</span>
+              <span>→</span>
             </button>
-            <button
-              onClick={() => {
-                console.log(' Closing success popup')
-                setShowSuccessPopup(false)
-                setPendingRegistrationData(null)
-              }}
-              disabled={isLoading}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-6 rounded-lg font-medium transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
+            <p className="text-xs text-gray-500">
+              Redirecting automatically in 5 seconds...
+            </p>
           </div>
           
           <div className="mt-4 text-xs text-gray-500">
@@ -475,7 +487,7 @@ export default function RegisterPage() {
                         placeholder="Confirm your password"
                         {...register('confirmPassword', { 
                           required: 'Please confirm your password',
-                          validate: value => value === password || 'Passwords do not match'
+                          validate: (value: string) => value === password || 'Passwords do not match'
                         })}
                         className="input-field pl-10 pr-10"
                       />

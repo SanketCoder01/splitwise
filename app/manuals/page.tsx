@@ -189,7 +189,7 @@ export default function ManualsPage() {
   }
 
   const getColorClasses = (color: string) => {
-    const colors = {
+    const colors: { [key: string]: string } = {
       blue: 'from-blue-500 to-blue-600',
       green: 'from-green-500 to-green-600',
       purple: 'from-purple-500 to-purple-600',

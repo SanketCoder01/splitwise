@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff, Shield, Building2, Lock, CheckCircle, AlertCircle, Loader2, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, Shield, Building2, Lock, CheckCircle, AlertCircle, Loader2, ArrowLeft, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -23,15 +23,17 @@ export default function RecruiterLoginPage() {
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const router = useRouter()
 
-  useEffect(() => {
-    const generateCaptcha = () => {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-      let result = ''
-      for (let i = 0; i < 5; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length))
-      }
-      setCaptchaCode(result)
+  const generateCaptcha = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let result = ''
+    for (let i = 0; i < 5; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length))
     }
+    setCaptchaCode(result)
+    setFormData(prev => ({ ...prev, captcha: '' })) // Clear captcha input
+  }
+
+  useEffect(() => {
     generateCaptcha()
   }, [])
 
@@ -314,8 +316,18 @@ export default function RecruiterLoginPage() {
                           className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                           placeholder="Enter code"
                         />
-                        <div className="bg-gray-100 px-4 py-3 rounded-lg border font-mono text-lg tracking-wider">
-                          {captchaCode}
+                        <div className="flex items-center space-x-2">
+                          <div className="bg-gray-100 px-4 py-3 rounded-lg border font-mono text-lg tracking-wider">
+                            {captchaCode}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={generateCaptcha}
+                            className="p-3 text-gray-500 hover:text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors"
+                            title="Refresh Captcha"
+                          >
+                            <RefreshCw className="w-5 h-5" />
+                          </button>
                         </div>
                       </div>
                       {errors.captcha && (

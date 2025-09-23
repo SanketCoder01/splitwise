@@ -348,11 +348,11 @@ export default function HomePage() {
                   <Home className="w-5 h-5 animate-float" />
                   <span className="font-medium">HOME</span>
                 </Link>
-                <Link href="/internships" className="flex items-center space-x-3 hover:text-orange-300 transition-colors hover-scale btn-animate px-4 py-2 rounded">
+                <Link href="/internship-schemes-info" className="flex items-center space-x-3 hover:text-orange-300 transition-colors hover-scale btn-animate px-4 py-2 rounded">
                   <Users className="w-5 h-5 animate-bounce-custom" />
                   <span className="font-medium">INTERNSHIP SCHEMES</span>
                 </Link>
-                <Link href="/resume-verifier" className="flex items-center space-x-3 hover:text-orange-300 transition-colors hover-scale btn-animate px-4 py-2 rounded">
+                <Link href="/resume-verifier-info" className="flex items-center space-x-3 hover:text-orange-300 transition-colors hover-scale btn-animate px-4 py-2 rounded">
                   <FileCheck className="w-5 h-5 animate-pulse-custom" />
                   <span className="font-medium">RESUME VERIFIER</span>
                 </Link>
@@ -857,7 +857,7 @@ export default function HomePage() {
               <div>
                 <h4 className="text-lg font-semibold mb-4 text-white">Quick Links</h4>
                 <ul className="space-y-2 text-sm text-gray-400">
-                  <li><Link href="/internships" className="hover:text-white transition-colors">Find Internships</Link></li>
+                  <li><Link href="/schemes" className="hover:text-white transition-colors">Find Internships</Link></li>
                   <li><Link href="/register" className="hover:text-white transition-colors">Student Registration</Link></li>
                   <li><Link href="/gov-login" className="hover:text-white transition-colors">Government Login</Link></li>
                   <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>

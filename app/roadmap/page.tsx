@@ -337,29 +337,6 @@ export default function RoadmapPage() {
           </div>
         </div>
 
-        {/* CTA Section */}
-        <div className="text-center mt-12">
-          <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg p-8">
-            <h2 className="text-3xl font-bold mb-4">Ready to Start Your Journey?</h2>
-            <p className="text-xl mb-6 opacity-90">
-              Follow this roadmap and take the first step towards your government internship!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                href="/register" 
-                className="bg-white text-orange-600 px-8 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-              >
-                Start Application
-              </Link>
-              <Link 
-                href="/eligibility" 
-                className="border-2 border-white text-white px-8 py-3 rounded-lg font-medium hover:bg-white hover:text-orange-600 transition-colors"
-              >
-                Check Eligibility
-              </Link>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )
