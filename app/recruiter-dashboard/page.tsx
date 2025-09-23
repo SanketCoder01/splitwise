@@ -14,7 +14,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
-// import RecruiterProfileCompletion from '../../components/RecruiterProfileCompletion' // Will create this component
+import RecruiterProfileCompletion from '../../components/RecruiterProfileCompletion'
 
 interface InternshipPosting {
   id: string
@@ -495,37 +495,7 @@ export default function RecruiterDashboard() {
   }
 
   function renderProfileSteps() {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Complete Your Profile</h2>
-          <p className="text-gray-600">Fill in all required information to start posting internships</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border p-8">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="w-8 h-8 text-blue-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Recruiter Profile Completion</h3>
-            <p className="text-gray-600 mb-6">
-              Complete your profile with company details, verification documents, and contact information.
-            </p>
-            <div className="bg-blue-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> This component will be implemented with 6-step profile completion similar to student profile.
-              </p>
-            </div>
-            <button
-              onClick={() => toast('Profile completion component will be implemented')}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Start Profile Completion
-            </button>
-          </div>
-        </div>
-      </div>
-    )
+    return <RecruiterProfileCompletion recruiterData={recruiterData} onProfileUpdate={fetchRecruiterData} />
   }
 
   function renderProfile() {
