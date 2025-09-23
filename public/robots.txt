@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# PM Internship Portal - Government of India
+# Official portal for internship opportunities
+
+Sitemap: https://pm-internship-portal.vercel.app/sitemap.xml
