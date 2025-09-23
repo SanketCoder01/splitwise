@@ -216,9 +216,9 @@ export default function GovernmentLoginPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
+      <div className="flex flex-col lg:grid lg:grid-cols-2 min-h-screen">
         {/* Left Side - Sliding Images */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-blue-100">
+        <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-blue-100 h-64 lg:h-auto">
           {/* Sliding Images */}
           <div className="absolute inset-0 overflow-hidden">
             <div className="sliding-images-container">
@@ -262,29 +262,29 @@ export default function GovernmentLoginPage() {
           </div>
           
           {/* Content Overlay */}
-          <div className="relative z-10 flex flex-col justify-center h-full p-8">
-            <div className="text-center text-white mb-8">
-              <h2 className="text-4xl font-bold mb-4">Welcome to</h2>
-              <h1 className="text-5xl font-bold mb-6 text-green-400">Government Portal</h1>
-              <p className="text-xl mb-8 leading-relaxed max-w-md">
+          <div className="relative z-10 flex flex-col justify-center h-full p-4 lg:p-8">
+            <div className="text-center text-white mb-4 lg:mb-8">
+              <h2 className="text-2xl lg:text-4xl font-bold mb-2 lg:mb-4">Welcome to</h2>
+              <h1 className="text-3xl lg:text-5xl font-bold mb-4 lg:mb-6 text-green-400">Government Portal</h1>
+              <p className="text-sm lg:text-xl mb-4 lg:mb-8 leading-relaxed max-w-md mx-auto">
                 Secure access for government officials to manage internship programs and verify student credentials
               </p>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-6 border border-white/30">
-                <div className="grid grid-cols-2 gap-4 text-center">
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 lg:p-6 border border-white/30">
+                <div className="grid grid-cols-2 gap-2 lg:gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold">200+</div>
-                    <div className="text-sm opacity-90">Departments</div>
+                    <div className="text-xl lg:text-2xl font-bold">200+</div>
+                    <div className="text-xs lg:text-sm opacity-90">Departments</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold">1000+</div>
-                    <div className="text-sm opacity-90">Officials</div>
+                    <div className="text-xl lg:text-2xl font-bold">1000+</div>
+                    <div className="text-xs lg:text-sm opacity-90">Officials</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Text below images */}
-            <div className="text-center text-white/90 mt-auto">
+            {/* Text below images - Hidden on mobile */}
+            <div className="hidden lg:block text-center text-white/90 mt-auto">
               <div className="bg-black/30 backdrop-blur-sm rounded-lg p-6 border border-white/20">
                 <h3 className="text-xl font-bold mb-3">Official Government Access</h3>
                 <p className="text-sm leading-relaxed max-w-lg mx-auto">
@@ -300,7 +300,7 @@ export default function GovernmentLoginPage() {
         </div>
 
         {/* Right Side - Login Form */}
-        <div className="flex items-center justify-center p-8">
+        <div className="flex items-center justify-center p-4 lg:p-8 flex-1">
           <div className="max-w-md w-full">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -308,41 +308,41 @@ export default function GovernmentLoginPage() {
               transition={{ duration: 0.6 }}
             >
               {/* Header */}
-              <div className="text-center mb-8">
+              <div className="text-center mb-6 lg:mb-8">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                  className="flex justify-center mb-6"
+                  className="flex justify-center mb-4 lg:mb-6"
                 >
-                  <div className="w-20 h-20 bg-gradient-to-br from-green-600 to-blue-700 rounded-full flex items-center justify-center shadow-lg">
-                    <Building2 className="w-10 h-10 text-white" />
+                  <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-green-600 to-blue-700 rounded-full flex items-center justify-center shadow-lg">
+                    <Building2 className="w-8 h-8 lg:w-10 lg:h-10 text-white" />
                   </div>
                 </motion.div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Official Portal Access</h2>
-                <p className="text-gray-600">Secure login for government officials and approved recruiters</p>
-                <div className="flex items-center justify-center mt-4 space-x-2">
+                <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Official Portal Access</h2>
+                <p className="text-sm lg:text-base text-gray-600">Secure login for government officials and approved recruiters</p>
+                <div className="flex items-center justify-center mt-3 lg:mt-4 space-x-2">
                   <Lock className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-600 font-medium">High Security Access</span>
+                  <span className="text-xs lg:text-sm text-green-600 font-medium">High Security Access</span>
                 </div>
               </div>
 
               {/* Login Type Selection */}
-              <div className="mb-6">
-                <div className="grid grid-cols-2 gap-3">
+              <div className="mb-4 lg:mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
                     className="flex items-center justify-center space-x-2 p-3 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-all"
                   >
-                    <Shield className="w-5 h-5 text-green-600" />
-                    <span className="text-sm font-medium text-gray-700">Government Official</span>
+                    <Shield className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
+                    <span className="text-xs lg:text-sm font-medium text-gray-700">Government Official</span>
                   </button>
                   <Link
                     href="/recruiter-login"
                     className="flex items-center justify-center space-x-2 p-3 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all"
                   >
-                    <Building2 className="w-5 h-5 text-blue-600" />
-                    <span className="text-sm font-medium text-gray-700">Recruiter/Company</span>
+                    <Building2 className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
+                    <span className="text-xs lg:text-sm font-medium text-gray-700">Recruiter/Company</span>
                   </Link>
                 </div>
                 <p className="text-xs text-gray-500 mt-2 text-center">
@@ -358,7 +358,7 @@ export default function GovernmentLoginPage() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     onSubmit={handleSubmit}
-                    className="space-y-6"
+                    className="space-y-4 lg:space-y-6"
                   >
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -368,7 +368,7 @@ export default function GovernmentLoginPage() {
                         type="text"
                         value={formData.employeeId}
                         onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        className="w-full px-3 py-2 lg:px-4 lg:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-sm lg:text-base"
                         placeholder="Enter your employee ID"
                       />
                       {errors.employeeId && (
@@ -385,15 +385,15 @@ export default function GovernmentLoginPage() {
                           type={showPassword ? "text" : "password"}
                           value={formData.password}
                           onChange={(e) => setFormData({...formData, password: e.target.value})}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all pr-12"
+                          className="w-full px-3 py-2 lg:px-4 lg:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all pr-10 lg:pr-12 text-sm lg:text-base"
                           placeholder="Enter your password"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                          className="absolute right-2 lg:right-3 top-2 lg:top-3 text-gray-400 hover:text-gray-600"
                         >
-                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          {showPassword ? <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" /> : <Eye className="w-4 h-4 lg:w-5 lg:h-5" />}
                         </button>
                       </div>
                       {errors.password && (
@@ -405,25 +405,25 @@ export default function GovernmentLoginPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Security Code
                       </label>
-                      <div className="flex space-x-3">
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                         <input
                           type="text"
                           value={formData.captcha}
                           onChange={(e) => setFormData({...formData, captcha: e.target.value})}
-                          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                          className="flex-1 px-3 py-2 lg:px-4 lg:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-sm lg:text-base"
                           placeholder="Enter code"
                         />
-                        <div className="flex items-center space-x-2">
-                          <div className="bg-gray-100 px-4 py-3 rounded-lg border font-mono text-lg tracking-wider">
+                        <div className="flex items-center space-x-2 justify-center sm:justify-start">
+                          <div className="bg-gray-100 px-3 py-2 lg:px-4 lg:py-3 rounded-lg border font-mono text-base lg:text-lg tracking-wider">
                             {captchaCode}
                           </div>
                           <button
                             type="button"
                             onClick={generateCaptcha}
-                            className="p-3 text-gray-500 hover:text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors"
+                            className="p-2 lg:p-3 text-gray-500 hover:text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors"
                             title="Refresh Captcha"
                           >
-                            <RefreshCw className="w-5 h-5" />
+                            <RefreshCw className="w-4 h-4 lg:w-5 lg:h-5" />
                           </button>
                         </div>
                       </div>
@@ -437,11 +437,11 @@ export default function GovernmentLoginPage() {
                       whileTap={{ scale: 0.98 }}
                       type="submit"
                       disabled={isLoading}
-                      className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-2.5 lg:py-3 px-4 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
                     >
                       {isLoading ? (
                         <div className="flex items-center justify-center">
-                          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                          <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin mr-2" />
                           Authenticating...
                         </div>
                       ) : (
@@ -456,12 +456,12 @@ export default function GovernmentLoginPage() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     onSubmit={handleOTPSubmit}
-                    className="space-y-6"
+                    className="space-y-4 lg:space-y-6"
                   >
-                    <div className="text-center mb-6">
-                      <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Two-Factor Authentication</h3>
-                      <p className="text-gray-600">Enter the 6-digit code sent to your registered device</p>
+                    <div className="text-center mb-4 lg:mb-6">
+                      <CheckCircle className="w-12 h-12 lg:w-16 lg:h-16 text-green-500 mx-auto mb-3 lg:mb-4" />
+                      <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-2">Two-Factor Authentication</h3>
+                      <p className="text-sm lg:text-base text-gray-600">Enter the 6-digit code sent to your registered device</p>
                     </div>
 
                     <div>
@@ -472,7 +472,7 @@ export default function GovernmentLoginPage() {
                         type="text"
                         value={formData.otp}
                         onChange={(e) => setFormData({...formData, otp: e.target.value})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-center text-2xl tracking-widest"
+                        className="w-full px-3 py-2 lg:px-4 lg:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-center text-lg lg:text-2xl tracking-widest"
                         placeholder="000000"
                         maxLength={6}
                       />
@@ -486,11 +486,11 @@ export default function GovernmentLoginPage() {
                       whileTap={{ scale: 0.98 }}
                       type="submit"
                       disabled={isLoading}
-                      className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-2.5 lg:py-3 px-4 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
                     >
                       {isLoading ? (
                         <div className="flex items-center justify-center">
-                          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                          <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin mr-2" />
                           Verifying...
                         </div>
                       ) : (
@@ -509,8 +509,8 @@ export default function GovernmentLoginPage() {
                 )}
               </AnimatePresence>
 
-              <div className="mt-8 text-center">
-                <p className="text-sm text-gray-600">
+              <div className="mt-6 lg:mt-8 text-center">
+                <p className="text-xs lg:text-sm text-gray-600">
                   Need help? Contact{' '}
                   <Link href="/support" className="text-green-600 hover:text-green-700 font-medium">
                     IT Support

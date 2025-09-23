@@ -289,12 +289,12 @@ export default function HomePage() {
       <header className="bg-white shadow-sm">
         <div className="w-full max-w-full">
           {/* Top Government Bar */}
-          <div className="bg-gray-100 px-4 py-2 text-sm">
+          <div className="bg-gray-100 px-2 sm:px-4 py-2 text-xs sm:text-sm">
             <div className="flex items-center justify-between w-full">
-              <div className="flex items-center space-x-4 text-gray-600">
-                <span>🇮🇳 भारत सरकार | Government of India</span>
+              <div className="flex items-center space-x-2 sm:space-x-4 text-gray-600">
+                <span className="truncate">🇮🇳 भारत सरकार | Government of India</span>
               </div>
-              <div className="flex items-center space-x-4 text-gray-600">
+              <div className="hidden sm:flex items-center space-x-4 text-gray-600">
                 <span>🌐 English</span>
                 <span>|</span>
                 <span>हिंदी</span>
@@ -308,69 +308,129 @@ export default function HomePage() {
           </div>
 
           {/* Main Header */}
-          <div className="px-4 py-4">
+          <div className="px-2 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between w-full">
-              <div className="flex items-center space-x-6 flex-1">
+              <div className="flex items-center space-x-2 sm:space-x-6 flex-1">
                 <Image
                   src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
                   alt="Government of India"
-                  width={60}
-                  height={60}
-                  className="object-contain"
+                  width={40}
+                  height={40}
+                  className="sm:w-[60px] sm:h-[60px] object-contain"
                 />
-                <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-gray-900">PM Internship & Resume Verifier</h1>
-                  <p className="text-sm text-gray-600">MINISTRY OF EDUCATION</p>
-                  <p className="text-xs text-gray-500">Government of India</p>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-sm sm:text-2xl font-bold text-gray-900 truncate">PM Internship & Resume Verifier</h1>
+                  <p className="text-xs sm:text-sm text-gray-600">MINISTRY OF EDUCATION</p>
+                  <p className="text-xs text-gray-500 hidden sm:block">Government of India</p>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-6">
-                <Link href="/login" className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded font-semibold transition-colors btn-animate hover-scale glow-effect">
-                  Student Login
-                </Link>
-                <Link href="/gov-login" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-semibold transition-colors btn-animate hover-scale glow-effect">
-                  Government Login
-                </Link>
-                <div className="text-right">
-                  <div className="text-sm font-semibold text-orange-600">विकसित भारत</div>
-                  <div className="text-xs text-gray-500">@2047</div>
+              {/* Mobile Menu Button */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </button>
+                
+                {/* Desktop Login Buttons */}
+                <div className="hidden lg:flex items-center space-x-3 xl:space-x-6">
+                  <Link href="/login" className="bg-orange-500 hover:bg-orange-600 text-white px-3 xl:px-6 py-2 rounded font-semibold transition-colors text-sm xl:text-base">
+                    Student Login
+                  </Link>
+                  <Link href="/gov-login" className="bg-blue-600 hover:bg-blue-700 text-white px-3 xl:px-6 py-2 rounded font-semibold transition-colors text-sm xl:text-base">
+                    Government Login
+                  </Link>
+                  <div className="text-right hidden xl:block">
+                    <div className="text-sm font-semibold text-orange-600">विकसित भारत</div>
+                    <div className="text-xs text-gray-500">@2047</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Navigation Menu */}
-          <nav className="bg-blue-900 text-white">
+          {/* Desktop Navigation Menu */}
+          <nav className="bg-blue-900 text-white hidden lg:block">
             <div className="px-4">
-              <div className="flex justify-center space-x-16 py-4 w-full">
-                <Link href="/" className="flex items-center space-x-3 hover:text-orange-300 transition-colors hover-scale btn-animate px-4 py-2 rounded">
-                  <Home className="w-5 h-5 animate-float" />
+              <div className="flex justify-center space-x-8 xl:space-x-16 py-4 w-full">
+                <Link href="/" className="flex items-center space-x-2 xl:space-x-3 hover:text-orange-300 transition-colors px-2 xl:px-4 py-2 rounded text-sm xl:text-base">
+                  <Home className="w-4 h-4 xl:w-5 xl:h-5" />
                   <span className="font-medium">HOME</span>
                 </Link>
-                <Link href="/internship-schemes-info" className="flex items-center space-x-3 hover:text-orange-300 transition-colors hover-scale btn-animate px-4 py-2 rounded">
-                  <Users className="w-5 h-5 animate-bounce-custom" />
-                  <span className="font-medium">INTERNSHIP SCHEMES</span>
+                <Link href="/internship-schemes-info" className="flex items-center space-x-2 xl:space-x-3 hover:text-orange-300 transition-colors px-2 xl:px-4 py-2 rounded text-sm xl:text-base">
+                  <Users className="w-4 h-4 xl:w-5 xl:h-5" />
+                  <span className="font-medium">SCHEMES</span>
                 </Link>
-                <Link href="/resume-verifier-info" className="flex items-center space-x-3 hover:text-orange-300 transition-colors hover-scale btn-animate px-4 py-2 rounded">
-                  <FileCheck className="w-5 h-5 animate-pulse-custom" />
-                  <span className="font-medium">RESUME VERIFIER</span>
+                <Link href="/resume-verifier-info" className="flex items-center space-x-2 xl:space-x-3 hover:text-orange-300 transition-colors px-2 xl:px-4 py-2 rounded text-sm xl:text-base">
+                  <FileCheck className="w-4 h-4 xl:w-5 xl:h-5" />
+                  <span className="font-medium">VERIFIER</span>
                 </Link>
-                <Link href="/roadmap" className="flex items-center space-x-3 hover:text-orange-300 transition-colors hover-scale btn-animate px-4 py-2 rounded">
-                  <Target className="w-5 h-5 animate-float" />
+                <Link href="/roadmap" className="flex items-center space-x-2 xl:space-x-3 hover:text-orange-300 transition-colors px-2 xl:px-4 py-2 rounded text-sm xl:text-base">
+                  <Target className="w-4 h-4 xl:w-5 xl:h-5" />
                   <span className="font-medium">ROADMAP</span>
                 </Link>
-                <Link href="/eligibility" className="flex items-center space-x-3 hover:text-orange-300 transition-colors hover-scale btn-animate px-4 py-2 rounded">
-                  <CheckCircle className="w-5 h-5 animate-bounce-custom" />
+                <Link href="/eligibility" className="flex items-center space-x-2 xl:space-x-3 hover:text-orange-300 transition-colors px-2 xl:px-4 py-2 rounded text-sm xl:text-base">
+                  <CheckCircle className="w-4 h-4 xl:w-5 xl:h-5" />
                   <span className="font-medium">ELIGIBILITY</span>
                 </Link>
-                <Link href="/support" className="flex items-center space-x-3 hover:text-orange-300 transition-colors hover-scale btn-animate px-4 py-2 rounded">
-                  <Award className="w-5 h-5 animate-pulse-custom" />
+                <Link href="/support" className="flex items-center space-x-2 xl:space-x-3 hover:text-orange-300 transition-colors px-2 xl:px-4 py-2 rounded text-sm xl:text-base">
+                  <Award className="w-4 h-4 xl:w-5 xl:h-5" />
                   <span className="font-medium">SUPPORT</span>
                 </Link>
               </div>
             </div>
           </nav>
+
+          {/* Mobile Navigation Menu */}
+          <AnimatePresence>
+            {isMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="lg:hidden bg-blue-900 text-white"
+              >
+                <div className="px-4 py-4 space-y-2">
+                  <Link href="/" className="flex items-center space-x-3 hover:text-orange-300 transition-colors px-4 py-3 rounded-lg hover:bg-blue-800">
+                    <Home className="w-5 h-5" />
+                    <span className="font-medium">HOME</span>
+                  </Link>
+                  <Link href="/internship-schemes-info" className="flex items-center space-x-3 hover:text-orange-300 transition-colors px-4 py-3 rounded-lg hover:bg-blue-800">
+                    <Users className="w-5 h-5" />
+                    <span className="font-medium">INTERNSHIP SCHEMES</span>
+                  </Link>
+                  <Link href="/resume-verifier-info" className="flex items-center space-x-3 hover:text-orange-300 transition-colors px-4 py-3 rounded-lg hover:bg-blue-800">
+                    <FileCheck className="w-5 h-5" />
+                    <span className="font-medium">RESUME VERIFIER</span>
+                  </Link>
+                  <Link href="/roadmap" className="flex items-center space-x-3 hover:text-orange-300 transition-colors px-4 py-3 rounded-lg hover:bg-blue-800">
+                    <Target className="w-5 h-5" />
+                    <span className="font-medium">ROADMAP</span>
+                  </Link>
+                  <Link href="/eligibility" className="flex items-center space-x-3 hover:text-orange-300 transition-colors px-4 py-3 rounded-lg hover:bg-blue-800">
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="font-medium">ELIGIBILITY</span>
+                  </Link>
+                  <Link href="/support" className="flex items-center space-x-3 hover:text-orange-300 transition-colors px-4 py-3 rounded-lg hover:bg-blue-800">
+                    <Award className="w-5 h-5" />
+                    <span className="font-medium">SUPPORT</span>
+                  </Link>
+                  
+                  {/* Mobile Login Buttons */}
+                  <div className="pt-4 space-y-2 border-t border-blue-800">
+                    <Link href="/login" className="flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors">
+                      Student Login
+                    </Link>
+                    <Link href="/gov-login" className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-semibold transition-colors">
+                      Government Login
+                    </Link>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </header>
 

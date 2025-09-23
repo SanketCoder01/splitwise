@@ -57,27 +57,62 @@ export default function RecruiterDashboard() {
 
   const fetchRecruiterData = async () => {
     try {
-      // Mock data for now - replace with actual Supabase call
-      const mockData: RecruiterProfile = {
-        id: '1',
-        full_name: 'John Smith',
-        company_name: 'Tech Solutions Pvt Ltd',
-        profile_image: undefined,
-        profile_completed: false,
-        profile_step: 1,
-        approval_status: 'pending',
-        email: 'john@techsolutions.com',
-        phone: '+91 9876543210'
-      }
-      setRecruiterData(mockData)
+      // Get recruiter data from session storage (set during login)
+      const recruiterSessionData = sessionStorage.getItem('recruiter_data')
       
-      // If profile not completed, show profile steps
-      if (!mockData.profile_completed) {
-        setActiveTab('profile-steps')
-        setShowProfileSteps(true)
+      if (recruiterSessionData) {
+        const sessionData = JSON.parse(recruiterSessionData)
+        
+        // Try to fetch from Supabase first
+        const { data: profileData, error } = await supabase
+          .from('recruiter_profiles')
+          .select('*')
+          .eq('email', sessionData.email || `hr@${sessionData.organization_id.toLowerCase()}.com`)
+          .single()
+        
+        if (profileData) {
+          // Use Supabase data if available
+          const recruiterData: RecruiterProfile = {
+            id: profileData.id,
+            full_name: profileData.full_name,
+            company_name: profileData.company_name,
+            profile_image: undefined,
+            profile_completed: profileData.profile_completed || false,
+            profile_step: profileData.profile_step || 1,
+            approval_status: profileData.approval_status || 'pending',
+            email: profileData.email,
+            phone: profileData.phone
+          }
+          setRecruiterData(recruiterData)
+        } else {
+          // Use session data as fallback and create initial profile
+          const initialData: RecruiterProfile = {
+            id: 'temp-' + sessionData.organization_id,
+            full_name: '',
+            company_name: sessionData.organization_name || '',
+            profile_image: undefined,
+            profile_completed: false,
+            profile_step: 1,
+            approval_status: 'pending',
+            email: sessionData.email || `hr@${sessionData.organization_id.toLowerCase()}.com`,
+            phone: ''
+          }
+          setRecruiterData(initialData)
+        }
+        
+        // If profile not completed, show profile steps
+        const currentData = profileData || { profile_completed: false }
+        if (!currentData.profile_completed) {
+          setActiveTab('profile-steps')
+          setShowProfileSteps(true)
+        }
+      } else {
+        // No session data, redirect to login
+        window.location.href = '/recruiter-login'
       }
     } catch (error) {
       console.error('Error fetching recruiter data:', error)
+      toast.error('Failed to load profile data')
     } finally {
       setLoading(false)
     }

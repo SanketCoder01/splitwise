@@ -97,25 +97,103 @@ export default function RecruiterProfileCompletion({ recruiterData, onProfileUpd
 
     setIsLoading(true)
     try {
-      // Save current step data to Supabase
+      // Prepare data for Supabase
+      const profileData = {
+        // Personal Details
+        full_name: formData.full_name,
+        designation: formData.designation,
+        employee_id: formData.employee_id,
+        
+        // Company Details
+        company_name: formData.company_name,
+        company_type: formData.company_type,
+        industry: formData.industry,
+        company_size: formData.company_size,
+        website: formData.website,
+        
+        // Contact Information
+        email: formData.email,
+        phone: formData.phone,
+        alternate_phone: formData.alternate_phone,
+        address_line1: formData.address_line1,
+        address_line2: formData.address_line2,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        
+        // Internship Preferences
+        internship_types: formData.internship_types,
+        preferred_skills: formData.preferred_skills,
+        min_duration: formData.min_duration,
+        max_duration: formData.max_duration,
+        stipend_range: formData.stipend_range,
+        
+        // Agreement
+        terms_accepted: formData.terms_accepted,
+        data_consent: formData.data_consent,
+        
+        // Profile Status
+        profile_step: currentStep === 6 ? 6 : currentStep + 1,
+        profile_completed: currentStep === 6,
+        updated_at: new Date().toISOString()
+      }
+
+      // Handle file uploads for documents (Step 4)
+      if (currentStep === 4) {
+        // Upload documents to Supabase Storage
+        if (formData.company_registration) {
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('recruiter-documents')
+            .upload(`${recruiterData?.id}/company_registration_${Date.now()}.pdf`, formData.company_registration)
+          
+          if (!uploadError && uploadData) {
+            profileData.company_registration_url = uploadData.path
+          }
+        }
+        
+        if (formData.authorization_letter) {
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('recruiter-documents')
+            .upload(`${recruiterData?.id}/authorization_letter_${Date.now()}.pdf`, formData.authorization_letter)
+          
+          if (!uploadError && uploadData) {
+            profileData.authorization_letter_url = uploadData.path
+          }
+        }
+        
+        if (formData.id_proof) {
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('recruiter-documents')
+            .upload(`${recruiterData?.id}/id_proof_${Date.now()}.pdf`, formData.id_proof)
+          
+          if (!uploadError && uploadData) {
+            profileData.id_proof_url = uploadData.path
+          }
+        }
+      }
+
+      // Save to Supabase
       const { error } = await supabase
         .from('recruiter_profiles')
         .upsert({
-          id: recruiterData?.id || 'temp-id',
-          ...formData,
-          profile_step: currentStep + 1,
-          profile_completed: currentStep === 6,
-          updated_at: new Date().toISOString()
+          id: recruiterData?.id?.startsWith('temp-') ? undefined : recruiterData?.id,
+          ...profileData
         })
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
 
       if (currentStep < 6) {
         setCurrentStep(currentStep + 1)
-        toast.success(`Step ${currentStep} completed!`)
+        toast.success(`Step ${currentStep} completed successfully!`)
       } else {
-        toast.success('Profile completed successfully! Waiting for government approval.')
-        onProfileUpdate()
+        toast.success('🎉 Profile completed successfully! Waiting for government approval.')
+        // Refresh the parent component
+        setTimeout(() => {
+          onProfileUpdate()
+        }, 1000)
       }
     } catch (error) {
       console.error('Error saving profile:', error)

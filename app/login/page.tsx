@@ -268,9 +268,9 @@ export default function StudentLoginPage() {
       </header>
 
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
+      <div className="flex flex-col lg:grid lg:grid-cols-2 min-h-screen">
         {/* Left Side - Sliding Images */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-blue-100">
+        <div className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-blue-100 h-64 lg:h-auto">
           {/* Sliding Images */}
           <div className="absolute inset-0 overflow-hidden">
             <div className="sliding-images-container">
@@ -314,30 +314,30 @@ export default function StudentLoginPage() {
           </div>
           
           {/* Content Overlay */}
-          <div className="relative z-10 flex flex-col justify-center h-full p-8">
-            <div className="text-center text-white mb-8">
-              <h2 className="text-4xl font-bold mb-4">Welcome to</h2>
-              <h1 className="text-5xl font-bold mb-6 text-orange-400">Student Portal</h1>
-              <p className="text-xl mb-8 leading-relaxed max-w-md">
+          <div className="relative z-10 flex flex-col justify-center h-full p-4 lg:p-8">
+            <div className="text-center text-white mb-4 lg:mb-8">
+              <h2 className="text-2xl lg:text-4xl font-bold mb-2 lg:mb-4">Welcome to</h2>
+              <h1 className="text-3xl lg:text-5xl font-bold mb-4 lg:mb-6 text-orange-400">Student Portal</h1>
+              <p className="text-sm lg:text-xl mb-4 lg:mb-8 leading-relaxed max-w-md mx-auto">
                 Access your internship opportunities and build your career with government-backed programs
               </p>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-6 border border-white/30">
-                <div className="grid grid-cols-2 gap-4 text-center">
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 lg:p-6 border border-white/30">
+                <div className="grid grid-cols-2 gap-2 lg:gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold">50K+</div>
-                    <div className="text-sm opacity-90">Internships</div>
+                    <div className="text-xl lg:text-2xl font-bold">50K+</div>
+                    <div className="text-xs lg:text-sm opacity-90">Internships</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold">25+</div>
-                    <div className="text-sm opacity-90">Departments</div>
+                    <div className="text-xl lg:text-2xl font-bold">25+</div>
+                    <div className="text-xs lg:text-sm opacity-90">Departments</div>
                   </div>
                 </div>
               </div>
             </div>
 
 
-            {/* Text below images */}
-            <div className="text-center text-white/90 mt-auto">
+            {/* Text below images - Hidden on mobile */}
+            <div className="hidden lg:block text-center text-white/90 mt-auto">
               <div className="bg-black/30 backdrop-blur-sm rounded-lg p-6 border border-white/20">
                 <h3 className="text-xl font-bold mb-3">Student Access Portal</h3>
                 <p className="text-sm leading-relaxed max-w-lg mx-auto">
@@ -354,7 +354,7 @@ export default function StudentLoginPage() {
 
 
         {/* Right Side - Login Form */}
-        <div className="flex items-center justify-center p-8">
+        <div className="flex items-center justify-center p-4 lg:p-8 flex-1">
           <div className="max-w-md w-full">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -362,22 +362,22 @@ export default function StudentLoginPage() {
               transition={{ duration: 0.6 }}
             >
               {/* Header */}
-              <div className="text-center mb-8">
+              <div className="text-center mb-6 lg:mb-8">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                  className="flex justify-center mb-6"
+                  className="flex justify-center mb-4 lg:mb-6"
                 >
-                  <div className="w-20 h-20 bg-gradient-to-br from-orange-600 to-blue-700 rounded-full flex items-center justify-center shadow-lg">
-                    <GraduationCap className="w-10 h-10 text-white" />
+                  <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-orange-600 to-blue-700 rounded-full flex items-center justify-center shadow-lg">
+                    <GraduationCap className="w-8 h-8 lg:w-10 lg:h-10 text-white" />
                   </div>
                 </motion.div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Student Portal Access</h2>
-                <p className="text-gray-600">Login to access your internship dashboard and opportunities</p>
-                <div className="flex items-center justify-center mt-4 space-x-2">
+                <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Student Portal Access</h2>
+                <p className="text-sm lg:text-base text-gray-600">Login to access your internship dashboard and opportunities</p>
+                <div className="flex items-center justify-center mt-3 lg:mt-4 space-x-2">
                   <Lock className="w-4 h-4 text-orange-600" />
-                  <span className="text-sm text-orange-600 font-medium">Secure Student Access</span>
+                  <span className="text-xs lg:text-sm text-orange-600 font-medium">Secure Student Access</span>
                 </div>
                 
                 {/* Configuration Status */}
@@ -398,7 +398,7 @@ export default function StudentLoginPage() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 onSubmit={handleSubmit}
-                className="space-y-6"
+                className="space-y-4 lg:space-y-6"
               >
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -408,7 +408,7 @@ export default function StudentLoginPage() {
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                        className="w-full px-3 py-2 lg:px-4 lg:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-sm lg:text-base"
                         placeholder="Enter your email address"
                       />
                       {errors.email && (
@@ -426,15 +426,15 @@ export default function StudentLoginPage() {
                           type={showPassword ? "text" : "password"}
                           value={formData.password}
                           onChange={(e) => setFormData({...formData, password: e.target.value})}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all pr-12"
+                          className="w-full px-3 py-2 lg:px-4 lg:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all pr-10 lg:pr-12 text-sm lg:text-base"
                           placeholder="Enter your password"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                          className="absolute right-2 lg:right-3 top-2 lg:top-3 text-gray-400 hover:text-gray-600"
                         >
-                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          {showPassword ? <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" /> : <Eye className="w-4 h-4 lg:w-5 lg:h-5" />}
                         </button>
                       </div>
                       {errors.password && (
@@ -447,25 +447,25 @@ export default function StudentLoginPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Security Code
                       </label>
-                      <div className="flex space-x-3">
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                         <input
                           type="text"
                           value={formData.captcha}
                           onChange={(e) => setFormData({...formData, captcha: e.target.value})}
-                          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                          className="flex-1 px-3 py-2 lg:px-4 lg:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-sm lg:text-base"
                           placeholder="Enter code"
                         />
-                        <div className="flex items-center space-x-2">
-                          <div className="bg-gray-100 px-4 py-3 rounded-lg border font-mono text-lg tracking-wider">
+                        <div className="flex items-center space-x-2 justify-center sm:justify-start">
+                          <div className="bg-gray-100 px-3 py-2 lg:px-4 lg:py-3 rounded-lg border font-mono text-base lg:text-lg tracking-wider">
                             {captchaCode}
                           </div>
                           <button
                             type="button"
                             onClick={generateCaptcha}
-                            className="p-3 text-gray-500 hover:text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors"
+                            className="p-2 lg:p-3 text-gray-500 hover:text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors"
                             title="Refresh Captcha"
                           >
-                            <RefreshCw className="w-5 h-5" />
+                            <RefreshCw className="w-4 h-4 lg:w-5 lg:h-5" />
                           </button>
                         </div>
                       </div>
@@ -480,11 +480,11 @@ export default function StudentLoginPage() {
                       whileTap={{ scale: 0.98 }}
                       type="submit"
                       disabled={isLoading}
-                      className="w-full bg-gradient-to-r from-orange-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-orange-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-orange-600 to-blue-600 text-white py-2.5 lg:py-3 px-4 rounded-lg font-semibold hover:from-orange-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
                     >
                       {isLoading ? (
                         <div className="flex items-center justify-center">
-                          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                          <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin mr-2" />
                           Signing In...
                         </div>
                       ) : (
@@ -495,20 +495,20 @@ export default function StudentLoginPage() {
               </motion.form>
 
 
-              <div className="mt-8 text-center">
-                <div className="text-sm text-gray-600 mb-2">
+              <div className="mt-6 lg:mt-8 text-center space-y-2">
+                <div className="text-xs lg:text-sm text-gray-600">
                   Don't have an account?{' '}
                   <Link href="/register" className="text-orange-600 hover:text-orange-700 font-medium">
                     Register here
                   </Link>
                 </div>
-                <div className="text-sm text-gray-600 mb-2">
+                <div className="text-xs lg:text-sm text-gray-600">
                   Government Official?{' '}
                   <Link href="/gov-login" className="text-blue-600 hover:text-blue-700 font-medium">
                     Access Government Portal
                   </Link>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs lg:text-sm text-gray-600">
                   Need help? Contact{' '}
                   <Link href="/support" className="text-orange-600 hover:text-orange-700 font-medium">
                     Student Support
