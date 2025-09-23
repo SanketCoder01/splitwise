@@ -68,36 +68,42 @@ export default function GovernmentLoginPage() {
     setIsLoading(true)
     
     try {
-      // Check government official credentials
-      const { data: official, error } = await supabase
-        .from('government_officials')
-        .select('*')
-        .eq('employee_id', formData.employeeId)
-        .single()
+      // Test credentials for government officials
+      const validCredentials = {
+        'GOV001': { password: 'password123', name: 'Dr. Rajesh Kumar', department: 'Ministry of Education', role: 'Director' },
+        'GOV002': { password: 'password123', name: 'Ms. Priya Sharma', department: 'Ministry of Education', role: 'Joint Secretary' },
+        'GOV003': { password: 'password123', name: 'Mr. Amit Singh', department: 'Ministry of Education', role: 'Under Secretary' },
+        'ADMIN': { password: 'admin123', name: 'System Administrator', department: 'IT Department', role: 'Admin' }
+      }
       
-      if (error || !official) {
-        setErrors({ employeeId: 'Invalid Employee ID' })
+      const credential = validCredentials[formData.employeeId as keyof typeof validCredentials]
+      
+      if (!credential) {
+        setErrors({ employeeId: 'Invalid Employee ID. Use: GOV001, GOV002, GOV003, or ADMIN' })
         setIsLoading(false)
         return
       }
       
-      // Simple password check (in production, use proper hashing)
-      const validPasswords = {
-        'GOV001': 'password123',
-        'GOV002': 'password123', 
-        'GOV003': 'password123'
-      }
-      
-      if (validPasswords[formData.employeeId as keyof typeof validPasswords] !== formData.password) {
-        setErrors({ password: 'Invalid Password' })
+      if (credential.password !== formData.password) {
+        setErrors({ password: 'Invalid Password. Use: password123 (or admin123 for ADMIN)' })
         setIsLoading(false)
         return
+      }
+      
+      // Create mock official data
+      const officialData = {
+        employee_id: formData.employeeId,
+        name: credential.name,
+        department: credential.department,
+        role: credential.role,
+        email: `${formData.employeeId.toLowerCase()}@gov.in`,
+        permissions: ['read', 'write', 'approve']
       }
       
       // Store official data in session storage for gov dashboard
-      sessionStorage.setItem('government_official', JSON.stringify(official))
+      sessionStorage.setItem('government_official', JSON.stringify(officialData))
       
-      toast.success(`Welcome ${official.name}!`)
+      toast.success(`Welcome ${credential.name}!`)
       setStep('otp')
       
     } catch (error) {

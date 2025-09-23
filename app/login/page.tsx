@@ -492,19 +492,6 @@ export default function StudentLoginPage() {
                       )}
                     </motion.button>
                     
-                    {/* Development Bypass Button */}
-                    {showDevBypass && (
-                      <motion.button
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        type="button"
-                        onClick={handleDevBypass}
-                        disabled={isLoading}
-                        className="w-full mt-3 bg-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        🚀 Dev Bypass - Go to Dashboard
-                      </motion.button>
-                    )}
               </motion.form>
 
 
@@ -527,6 +514,18 @@ export default function StudentLoginPage() {
                     Student Support
                   </Link>
                 </p>
+                
+                {/* Small Development Bypass Button */}
+                {showDevBypass && (
+                  <button
+                    type="button"
+                    onClick={handleDevBypass}
+                    disabled={isLoading}
+                    className="mt-3 text-xs text-gray-500 hover:text-gray-700 underline transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Dev Access
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>

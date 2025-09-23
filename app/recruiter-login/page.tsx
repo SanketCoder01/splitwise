@@ -68,36 +68,44 @@ export default function RecruiterLoginPage() {
     setIsLoading(true)
     
     try {
-      // Check recruiter credentials
-      const { data: recruiter, error } = await supabase
-        .from('recruiters')
-        .select('*')
-        .eq('organization_id', formData.organizationId)
-        .single()
+      // Test credentials for recruiters/organizations
+      const validCredentials = {
+        'ORG001': { password: 'recruiter123', name: 'Tata Consultancy Services', type: 'Private Company', sector: 'IT Services' },
+        'ORG002': { password: 'recruiter123', name: 'Infosys Limited', type: 'Private Company', sector: 'Technology' },
+        'ORG003': { password: 'recruiter123', name: 'BHEL', type: 'PSU', sector: 'Engineering' },
+        'PSU001': { password: 'psu123', name: 'Indian Oil Corporation', type: 'PSU', sector: 'Oil & Gas' },
+        'STARTUP001': { password: 'startup123', name: 'Digital India Startup', type: 'Startup', sector: 'Technology' }
+      }
       
-      if (error || !recruiter) {
-        setErrors({ organizationId: 'Invalid Organization ID' })
+      const credential = validCredentials[formData.organizationId as keyof typeof validCredentials]
+      
+      if (!credential) {
+        setErrors({ organizationId: 'Invalid Organization ID. Use: ORG001, ORG002, ORG003, PSU001, or STARTUP001' })
         setIsLoading(false)
         return
       }
       
-      // Simple password check (in production, use proper hashing)
-      const validPasswords = {
-        'ORG001': 'recruiter123',
-        'ORG002': 'recruiter123', 
-        'ORG003': 'recruiter123'
-      }
-      
-      if (validPasswords[formData.organizationId as keyof typeof validPasswords] !== formData.password) {
-        setErrors({ password: 'Invalid Password' })
+      if (credential.password !== formData.password) {
+        setErrors({ password: 'Invalid Password. Check credentials: recruiter123, psu123, or startup123' })
         setIsLoading(false)
         return
+      }
+      
+      // Create mock recruiter data
+      const recruiterData = {
+        organization_id: formData.organizationId,
+        organization_name: credential.name,
+        organization_type: credential.type,
+        sector: credential.sector,
+        email: `hr@${formData.organizationId.toLowerCase()}.com`,
+        verified: true,
+        permissions: ['post_internships', 'view_applications', 'interview_students']
       }
       
       // Store recruiter data in session storage
-      sessionStorage.setItem('recruiter_data', JSON.stringify(recruiter))
+      sessionStorage.setItem('recruiter_data', JSON.stringify(recruiterData))
       
-      toast.success(`Welcome ${recruiter.organization_name}!`)
+      toast.success(`Welcome ${credential.name}!`)
       setStep('otp')
       
     } catch (error) {
