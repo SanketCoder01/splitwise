@@ -26,7 +26,8 @@ import {
   Loader,
   X,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ExternalLink
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -48,6 +49,9 @@ export default function SchemesPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [aiMatchedSchemes, setAiMatchedSchemes] = useState<any[]>([])
   const [showAIMatching, setShowAIMatching] = useState(false)
+  const [showEligibilityModal, setShowEligibilityModal] = useState(false)
+  const [selectedSchemeForEligibility, setSelectedSchemeForEligibility] = useState<any>(null)
+  const [appliedSchemes, setAppliedSchemes] = useState<Set<number>>(new Set())
 
   // Mock user resume for bypass mode
   useEffect(() => {
@@ -113,6 +117,118 @@ export default function SchemesPage() {
         "Patent filing support",
         "Startup incubation opportunities"
       ]
+    },
+    {
+      id: 3,
+      title: "Skill Development Internship",
+      department: "Ministry of Skill Development",
+      slots: "15,000+",
+      icon: Target,
+      color: "green",
+      image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=400&fit=crop",
+      description: "Comprehensive skill development program with industry training and certification across various sectors.",
+      duration: "3-9 months",
+      stipend: "₹20,000 - ₹35,000",
+      eligibility: "12th pass or equivalent, ITI/Diploma preferred",
+      features: [
+        "Industry-relevant skill training",
+        "Hands-on practical experience",
+        "Job placement assistance",
+        "International certification programs",
+        "Entrepreneurship development support"
+      ],
+      locations: ["Pan India - 500+ centers"],
+      applicationDeadline: "Rolling admissions",
+      benefits: [
+        "Free training and certification",
+        "Tool kit provided",
+        "Placement guarantee for top performers",
+        "Loan assistance for starting business"
+      ]
+    },
+    {
+      id: 4,
+      title: "Research & Development Internship",
+      department: "DRDO & ISRO",
+      slots: "2,000+",
+      icon: Award,
+      color: "red",
+      image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop",
+      description: "Research opportunities in defense technology, space science, and advanced engineering projects.",
+      duration: "6-12 months",
+      stipend: "₹35,000 - ₹60,000",
+      eligibility: "BTech/MTech/PhD in Engineering/Science",
+      features: [
+        "Work on classified defense projects",
+        "Access to advanced research facilities",
+        "Publication opportunities in journals",
+        "Collaboration with international researchers",
+        "Potential for permanent scientist positions"
+      ],
+      locations: ["Bangalore", "Hyderabad", "Delhi", "Mumbai", "Thiruvananthapuram"],
+      applicationDeadline: "May 30, 2024",
+      benefits: [
+        "Highest stipend category",
+        "Research publication support",
+        "International conference participation",
+        "Patent filing assistance"
+      ]
+    },
+    {
+      id: 5,
+      title: "Banking & Finance Internship",
+      department: "Ministry of Finance",
+      slots: "8,000+",
+      icon: Shield,
+      color: "indigo",
+      image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=400&fit=crop",
+      description: "Financial sector internships in public sector banks, RBI, and financial regulatory bodies.",
+      duration: "4-8 months",
+      stipend: "₹28,000 - ₹45,000",
+      eligibility: "Commerce/Economics/Finance/MBA graduates",
+      features: [
+        "Exposure to banking operations",
+        "Training in financial regulations",
+        "Customer service experience",
+        "Digital banking initiatives",
+        "Risk management training"
+      ],
+      locations: ["Mumbai", "New Delhi", "Kolkata", "Chennai", "Bangalore"],
+      applicationDeadline: "June 15, 2024",
+      benefits: [
+        "Banking sector experience",
+        "Financial certification courses",
+        "Networking with finance professionals",
+        "Fast-track recruitment opportunities"
+      ]
+    },
+    {
+      id: 6,
+      title: "Healthcare & Medical Internship",
+      department: "Ministry of Health",
+      slots: "12,000+",
+      icon: Heart,
+      color: "pink",
+      image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop",
+      description: "Medical and healthcare internships in government hospitals, research institutes, and public health programs.",
+      duration: "6-18 months",
+      stipend: "₹25,000 - ₹50,000",
+      eligibility: "MBBS/BDS/Nursing/Pharmacy/Allied Health graduates",
+      features: [
+        "Clinical experience in government hospitals",
+        "Public health program participation",
+        "Medical research opportunities",
+        "Rural healthcare exposure",
+        "Specialization training programs"
+      ],
+      locations: ["AIIMS Centers", "Government Medical Colleges", "District Hospitals"],
+      applicationDeadline: "July 31, 2024",
+      benefits: [
+        "Medical insurance coverage",
+        "Accommodation in hospital hostels",
+        "Continuing medical education credits",
+        "Rural service incentives"
+      ]
     }
   ]
 
@@ -150,6 +266,12 @@ export default function SchemesPage() {
     setShowApplicationModal(true)
   }
 
+  // Eligibility Handler
+  const handleCheckEligibility = (scheme: any) => {
+    setSelectedSchemeForEligibility(scheme)
+    setShowEligibilityModal(true)
+  }
+
   // Resume Upload Handler
   const handleResumeUpload = async () => {
     if (!resumeFile) return
@@ -178,9 +300,20 @@ export default function SchemesPage() {
     setIsApplying(true)
     try {
       await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Mark scheme as applied
+      if (selectedSchemeForApplication) {
+        setAppliedSchemes(prev => {
+          const newSet = new Set(prev)
+          newSet.add(selectedSchemeForApplication.id)
+          return newSet
+        })
+      }
+      
       setShowApplicationModal(false)
       setShowSuccessModal(true)
       setTimeout(() => setShowSuccessModal(false), 5000)
+      toast.success('Application submitted successfully!')
     } catch (error) {
       toast.error('Failed to submit application. Please try again.')
     } finally {
@@ -216,30 +349,38 @@ export default function SchemesPage() {
 
       {/* Main Header */}
       <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center space-x-3">
-            {/* Back Button */}
-            <button
-              onClick={() => window.history.back()}
-              className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 transition-colors p-1.5 rounded-lg hover:bg-gray-100"
-              title="Go Back"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
+        <div className="w-full px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Image
+                src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
+                alt="Government of India"
+                width={50}
+                height={50}
+                className="object-contain"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">PM Internship Schemes Portal</h1>
+                <p className="text-sm text-gray-600">Ministry of Education, Government of India</p>
+                <button
+                  onClick={() => window.history.back()}
+                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 transition-colors text-sm mt-1"
+                  title="Go Back"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back to Dashboard</span>
+                </button>
+              </div>
+            </div>
             
-            <div className="w-px h-8 bg-gray-300"></div>
-            
-            <Image
-              src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-              alt="Government of India"
-              width={40}
-              height={40}
-              className="object-contain"
-            />
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">PM Internship Schemes</h1>
-              <p className="text-xs text-gray-600">Ministry of Education, Government of India</p>
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">Government Portal</p>
+                <p className="text-xs text-gray-500">Secure & Verified</p>
+              </div>
+              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <Shield className="w-5 h-5 text-orange-600" />
+              </div>
             </div>
           </div>
         </div>
@@ -362,24 +503,28 @@ export default function SchemesPage() {
 
                 <div className="flex items-center justify-between">
                   <button
-                    onClick={() => setExpandedScheme(expandedScheme === scheme.id ? null : scheme.id)}
+                    onClick={() => handleCheckEligibility(scheme)}
                     className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 transition-colors"
                   >
                     <span>Check Eligibility</span>
-                    {expandedScheme === scheme.id ? 
-                      <ChevronUp className="w-4 h-4" /> : 
-                      <ChevronDown className="w-4 h-4" />
-                    }
+                    <ExternalLink className="w-4 h-4" />
                   </button>
                   
-                  <motion.button
-                    onClick={() => handleApply(scheme)}
-                    className="bg-orange-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-orange-700 transition-colors duration-200"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Apply Now
-                  </motion.button>
+                  {appliedSchemes.has(scheme.id) ? (
+                    <div className="bg-green-100 text-green-800 px-6 py-2 rounded-lg font-medium flex items-center space-x-2">
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Applied</span>
+                    </div>
+                  ) : (
+                    <motion.button
+                      onClick={() => handleApply(scheme)}
+                      className="bg-orange-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-orange-700 transition-colors duration-200"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Apply Now
+                    </motion.button>
+                  )}
                 </div>
 
                 {/* Expanded Details */}
@@ -664,6 +809,173 @@ export default function SchemesPage() {
               >
                 Continue
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Eligibility Modal */}
+      <AnimatePresence>
+        {showEligibilityModal && selectedSchemeForEligibility && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-6xl w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+            >
+              {/* Modal Header with Image */}
+              <div className="relative h-64">
+                <img
+                  src={selectedSchemeForEligibility.image}
+                  alt={selectedSchemeForEligibility.title}
+                  className="w-full h-full object-cover rounded-t-2xl"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-t-2xl"></div>
+                <button
+                  onClick={() => setShowEligibilityModal(false)}
+                  className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+                <div className="absolute bottom-6 left-6 text-white">
+                  <h2 className="text-3xl font-bold mb-2">{selectedSchemeForEligibility.title}</h2>
+                  <p className="text-lg opacity-90">{selectedSchemeForEligibility.department}</p>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Left Column */}
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <CheckCircle className="w-6 h-6 text-green-600 mr-2" />
+                        Eligibility Criteria
+                      </h3>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <p className="text-gray-700 font-medium">{selectedSchemeForEligibility.eligibility}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <Star className="w-6 h-6 text-yellow-600 mr-2" />
+                        Key Features
+                      </h3>
+                      <ul className="space-y-3">
+                        {selectedSchemeForEligibility.features.map((feature: string, idx: number) => (
+                          <li key={idx} className="flex items-start space-x-3">
+                            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-gray-700">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <MapPin className="w-6 h-6 text-blue-600 mr-2" />
+                        Available Locations
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedSchemeForEligibility.locations.map((location: string, idx: number) => (
+                          <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                            {location}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gray-50 rounded-lg p-4 text-center">
+                        <Users className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">Available Slots</p>
+                        <p className="text-2xl font-bold text-gray-900">{selectedSchemeForEligibility.slots}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4 text-center">
+                        <Clock className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">Duration</p>
+                        <p className="text-2xl font-bold text-gray-900">{selectedSchemeForEligibility.duration}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4 text-center">
+                        <DollarSign className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">Stipend</p>
+                        <p className="text-lg font-bold text-gray-900">{selectedSchemeForEligibility.stipend}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4 text-center">
+                        <Calendar className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">Deadline</p>
+                        <p className="text-sm font-bold text-gray-900">{selectedSchemeForEligibility.applicationDeadline}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <Award className="w-6 h-6 text-orange-600 mr-2" />
+                        Benefits & Perks
+                      </h3>
+                      <ul className="space-y-3">
+                        {selectedSchemeForEligibility.benefits.map((benefit: string, idx: number) => (
+                          <li key={idx} className="flex items-start space-x-3">
+                            <Award className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-gray-700">{benefit}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-orange-900 mb-2">Application Deadline</h4>
+                      <p className="text-orange-800 text-lg font-bold">{selectedSchemeForEligibility.applicationDeadline}</p>
+                      <p className="text-orange-700 text-sm mt-1">Don't miss out on this opportunity!</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">About This Internship</h3>
+                  <p className="text-gray-700 leading-relaxed">{selectedSchemeForEligibility.description}</p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={() => setShowEligibilityModal(false)}
+                    className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Close
+                  </button>
+                  {appliedSchemes.has(selectedSchemeForEligibility?.id) ? (
+                    <div className="flex-1 bg-green-100 text-green-800 px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2">
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Already Applied</span>
+                    </div>
+                  ) : (
+                    <motion.button
+                      onClick={() => {
+                        setShowEligibilityModal(false)
+                        handleApply(selectedSchemeForEligibility)
+                      }}
+                      className="flex-1 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-medium"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Apply Now
+                    </motion.button>
+                  )}
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
