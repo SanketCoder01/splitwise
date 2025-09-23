@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabase'
+import { supabase, sendMagicLinkWithTimeout } from '../../lib/supabase'
 import toast from 'react-hot-toast'
 
 export default function StudentLoginPage() {
@@ -24,6 +24,7 @@ export default function StudentLoginPage() {
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [otpSent, setOtpSent] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
+  const [showDevBypass, setShowDevBypass] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -36,6 +37,9 @@ export default function StudentLoginPage() {
       setCaptchaCode(result)
     }
     generateCaptcha()
+    
+    // Always show dev bypass for easy access
+    setShowDevBypass(true)
   }, [])
 
   const validateForm = () => {
@@ -118,12 +122,7 @@ export default function StudentLoginPage() {
           }
         } else {
           // User needs email verification, send magic link
-          const { error: magicLinkError } = await supabase.auth.signInWithOtp({
-            email: formData.email,
-            options: {
-              emailRedirectTo: `${window.location.origin}/auth/callback`
-            }
-          })
+          const { data: magicData, error: magicLinkError } = await sendMagicLinkWithTimeout(formData.email)
 
           if (magicLinkError) {
             toast.error('Failed to send verification link: ' + magicLinkError.message)
@@ -149,12 +148,7 @@ export default function StudentLoginPage() {
     
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
-      })
+      const { data, error } = await sendMagicLinkWithTimeout(formData.email)
 
       if (error) {
         toast.error('Failed to resend verification link: ' + error.message)
@@ -178,6 +172,14 @@ export default function StudentLoginPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleDevBypass = () => {
+    setIsLoading(true)
+    toast.success('Development bypass activated! Going to dashboard...')
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 1000)
   }
 
   return (
@@ -406,6 +408,20 @@ export default function StudentLoginPage() {
                         'Sign In'
                       )}
                     </motion.button>
+
+                    {/* Development Bypass Button */}
+                    {showDevBypass && (
+                      <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        type="button"
+                        onClick={handleDevBypass}
+                        disabled={isLoading}
+                        className="w-full mt-3 bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        🚀 Dev Bypass - Go to Dashboard
+                      </motion.button>
+                    )}
 
                     <div className="text-center">
                       <p className="text-sm text-gray-600">

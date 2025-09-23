@@ -229,15 +229,11 @@ export default function PMInternshipPortal() {
                   <motion.button
                     whileHover={{ scale: 1.02, x: 4 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setActiveTab('internship-opportunities')}
-                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                      activeTab === 'internship-opportunities'
-                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md'
-                    }`}
+                    onClick={() => window.location.href = '/schemes'}
+                    className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:shadow-md"
                   >
                     <Building className="w-5 h-5 mr-3" />
-                    Internship Opportunities
+                    Find Internships
                   </motion.button>
 
                   {/* M */}

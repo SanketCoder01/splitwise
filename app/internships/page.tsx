@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../contexts/AuthContext'
+// import { useAuth } from '../../contexts/AuthContext' // COMMENTED OUT FOR BYPASS
 
 interface Internship {
   id: string
@@ -29,6 +29,7 @@ interface Internship {
   deadline: string
   matchScore?: number
   isMatched?: boolean
+  image?: string
 }
 
 const mockInternships: Internship[] = [
@@ -48,7 +49,8 @@ const mockInternships: Internship[] = [
     maxApplications: 500,
     deadline: '2024-02-15',
     matchScore: 95,
-    isMatched: true
+    isMatched: true,
+    image: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=250&fit=crop'
   },
   {
     id: '2',
@@ -66,7 +68,8 @@ const mockInternships: Internship[] = [
     maxApplications: 300,
     deadline: '2024-02-20',
     matchScore: 88,
-    isMatched: true
+    isMatched: true,
+    image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&h=250&fit=crop'
   },
   {
     id: '3',
@@ -84,7 +87,8 @@ const mockInternships: Internship[] = [
     maxApplications: 200,
     deadline: '2024-02-25',
     matchScore: 72,
-    isMatched: true
+    isMatched: true,
+    image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&h=250&fit=crop'
   },
   {
     id: '4',
@@ -102,7 +106,8 @@ const mockInternships: Internship[] = [
     maxApplications: 400,
     deadline: '2024-03-01',
     matchScore: 65,
-    isMatched: false
+    isMatched: false,
+    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=250&fit=crop'
   },
   {
     id: '5',
@@ -120,12 +125,14 @@ const mockInternships: Internship[] = [
     maxApplications: 350,
     deadline: '2024-03-05',
     matchScore: 58,
-    isMatched: false
+    isMatched: false,
+    image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=250&fit=crop'
   }
 ]
 
 export default function InternshipsPage() {
-  const { user } = useAuth()
+  // const { user } = useAuth() // COMMENTED OUT FOR BYPASS
+  const user = { id: 'bypass-user', email: 'student@bypass.dev' } // MOCK USER FOR BYPASS
   const [internships, setInternships] = useState<Internship[]>(mockInternships)
   const [filteredInternships, setFilteredInternships] = useState<Internship[]>(mockInternships)
   const [searchTerm, setSearchTerm] = useState('')
@@ -148,36 +155,13 @@ export default function InternshipsPage() {
   const [isApplying, setIsApplying] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
 
-  // Fetch user's resume on component mount
+  // BYPASS: Skip Supabase resume fetching, use mock data
   useEffect(() => {
-    const fetchUserResume = async () => {
-      if (user?.id) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('resume_url')
-            .eq('id', user.id)
-            .single()
-          
-          if (error) {
-            if (error.code === 'PGRST204') {
-              console.warn('resume_url column not found in profiles table. Please add it using: ALTER TABLE profiles ADD COLUMN resume_url TEXT;')
-            } else {
-              console.error('Error fetching user resume:', error)
-            }
-            return
-          }
-          
-          if (data?.resume_url) {
-            setUserResume(data.resume_url)
-          }
-        } catch (error) {
-          console.error('Error fetching user resume:', error)
-        }
-      }
-    }
-    
-    fetchUserResume()
+    console.log('🚀 BYPASS MODE: Using mock resume data')
+    // For demo purposes, set a mock resume after 2 seconds
+    setTimeout(() => {
+      setUserResume('https://example.com/mock-resume.pdf')
+    }, 2000)
   }, [user])
 
   // Filter internships based on search and filters
@@ -203,6 +187,13 @@ export default function InternshipsPage() {
   }, [searchTerm, selectedFilters, internships, showAIMatching])
 
   const handleAIMatching = async () => {
+    // Check if user has resume first
+    if (!userResume) {
+      toast.error('Please upload your resume first to use AI matching!')
+      setShowApplicationModal(true) // Show modal to upload resume
+      return
+    }
+    
     setShowAIModal(true)
     setIsMatchingInProgress(true)
     
@@ -425,6 +416,17 @@ export default function InternshipsPage() {
             >
               <div className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
+                  {/* Internship Image */}
+                  {internship.image && (
+                    <div className="lg:w-48 lg:mr-6 mb-4 lg:mb-0">
+                      <img
+                        src={internship.image}
+                        alt={internship.title}
+                        className="w-full h-32 lg:h-24 object-cover rounded-lg shadow-sm"
+                      />
+                    </div>
+                  )}
+                  
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-4">
                       <div>
@@ -588,7 +590,7 @@ export default function InternshipsPage() {
               
               <h3 className="text-2xl font-bold text-gray-900 mb-4">AI Internship Matcher</h3>
               <p className="text-gray-600 mb-6">
-                Finding the best internships that match with your skills and profile...
+                Looking for best internships based on your skills and analyzing your resume...
               </p>
               
               <div className="flex items-center justify-center space-x-2 text-purple-600">

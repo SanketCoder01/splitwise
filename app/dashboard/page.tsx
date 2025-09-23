@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useAuth } from '../../contexts/AuthContext'
+// import { useAuth } from '../../contexts/AuthContext' // COMMENTED OUT FOR BYPASS
 import { supabase } from '../../lib/supabase'
 import toast from 'react-hot-toast'
 import DocumentVerification from '../../components/DocumentVerification'
@@ -64,7 +64,9 @@ interface Update {
 }
 
 export default function StudentDashboard() {
-  const { user, signOut } = useAuth()
+  // const { user, signOut } = useAuth() // COMMENTED OUT FOR BYPASS
+  const user = { id: 'bypass-user', email: 'student@bypass.dev' } // MOCK USER FOR BYPASS
+  const signOut = () => console.log('Sign out bypassed')
   const [activeTab, setActiveTab] = useState('dashboard')
   const [showProfileSteps, setShowProfileSteps] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -131,31 +133,28 @@ export default function StudentDashboard() {
   }
 
   useEffect(() => {
-    if (user) {
-      fetchAllData()
-      setupRealtimeSubscriptions()
+    // BYPASS: Always load data without authentication check
+    fetchAllData()
+    // setupRealtimeSubscriptions() // COMMENTED OUT TO AVOID SUPABASE ERRORS
+    
+    // Check URL parameters for tab
+    const urlParams = new URLSearchParams(window.location.search)
+    const tab = urlParams.get('tab')
+    const firstTime = urlParams.get('first-time')
+    
+    if (tab === 'profile-steps') {
+      setActiveTab('profile-steps')
+      setShowProfileSteps(true)
       
-      // Check URL parameters for tab
-      const urlParams = new URLSearchParams(window.location.search)
-      const tab = urlParams.get('tab')
-      const firstTime = urlParams.get('first-time')
-      
-      if (tab === 'profile-steps') {
-        setActiveTab('profile-steps')
-        setShowProfileSteps(true)
-        
-        // Show welcome message for first-time users
-        if (firstTime === 'true') {
-          setTimeout(() => {
-            toast.success('Complete your profile to unlock all features!', {
-              duration: 4000,
-              position: 'top-center'
-            })
-          }, 1000)
-        }
+      // Show welcome message for first-time users
+      if (firstTime === 'true') {
+        setTimeout(() => {
+          toast.success('Complete your profile to unlock all features!', {
+            duration: 4000,
+            position: 'top-center'
+          })
+        }, 1000)
       }
-    } else if (user === null) {
-      setLoading(false)
     }
 
     // Cleanup subscriptions on unmount
@@ -164,7 +163,7 @@ export default function StudentDashboard() {
         realtimeSubscription.unsubscribe()
       }
     }
-  }, [user])
+  }, []) // REMOVED USER DEPENDENCY
 
   // Auto-slide updates every 5 seconds
   useEffect(() => {
@@ -178,17 +177,118 @@ export default function StudentDashboard() {
 
   const fetchAllData = async () => {
     try {
-      await Promise.all([
-        fetchUserData(),
-        fetchDocuments(),
-        fetchSkills(),
-        fetchApplications(),
-        fetchNotifications(),
-        fetchInternships(),
-        fetchUpdates()
+      // BYPASS: Use mock data instead of Supabase
+      console.log('🚀 BYPASS MODE: Using mock data instead of Supabase')
+      
+      // Set mock user data
+      setUserData({
+        id: 'bypass-user',
+        email: 'student@bypass.dev',
+        full_name: 'Development Student',
+        phone: '+91 9876543210',
+        location: 'New Delhi, India',
+        linkedin: 'https://linkedin.com/in/dev-student',
+        github: 'https://github.com/dev-student',
+        profile_completed: true,
+        profile_step: 6,
+        aadhaar_verified: true,
+        digilocker_verified: true,
+        document_verifications: [{
+          aadhaar_verified: true,
+          digilocker_verified: true,
+          overall_verification_status: 'verified'
+        }]
+      })
+      
+      // Set mock documents
+      setDocuments([
+        {
+          id: '1',
+          name: 'Aadhaar Card',
+          verification_status: 'verified',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '2', 
+          name: 'Educational Certificate',
+          verification_status: 'verified',
+          created_at: new Date().toISOString()
+        }
       ])
+      
+      // Set mock skills
+      setSkills([
+        { id: '1', name: 'JavaScript', category: 'technical', proficiency: 'advanced' },
+        { id: '2', name: 'React', category: 'technical', proficiency: 'intermediate' },
+        { id: '3', name: 'Communication', category: 'soft', proficiency: 'expert' }
+      ])
+      
+      // Set mock applications
+      setApplications([
+        {
+          id: '1',
+          internship_title: 'Software Development Intern',
+          company: 'Tech Corp',
+          status: 'pending',
+          created_at: new Date().toISOString()
+        }
+      ])
+      
+      // Set mock notifications
+      setNotifications([
+        {
+          id: '1',
+          title: 'Welcome to PM Internship Portal',
+          message: 'Your profile has been successfully created!',
+          type: 'success',
+          created_at: new Date().toISOString(),
+          read: false
+        }
+      ])
+      
+      // Set mock internships
+      setInternships([
+        {
+          id: '1',
+          title: 'Software Development Intern',
+          company: 'National Informatics Centre',
+          ministry: 'Ministry of Electronics & IT',
+          location: 'New Delhi',
+          type: 'hybrid',
+          duration: '6 months',
+          stipend: '₹35,000/month',
+          description: 'Work on government digital initiatives',
+          requirements: ['Computer Science background', 'Programming skills'],
+          skills: ['JavaScript', 'React', 'Node.js'],
+          applications: 45,
+          maxApplications: 100,
+          deadline: '2024-12-31',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '2',
+          title: 'Data Analyst Intern',
+          company: 'Ministry of Education',
+          ministry: 'Ministry of Education',
+          location: 'Mumbai',
+          type: 'remote',
+          duration: '4 months',
+          stipend: '₹30,000/month',
+          description: 'Analyze educational data and trends',
+          requirements: ['Statistics background', 'Data analysis skills'],
+          skills: ['Python', 'SQL', 'Excel'],
+          applications: 32,
+          maxApplications: 50,
+          deadline: '2024-11-30',
+          created_at: new Date().toISOString()
+        }
+      ])
+      
+      // Set mock updates (already handled in fetchUpdates)
+      fetchUpdates()
+      
     } catch (error) {
-      console.error('Error fetching data:', error)
+      console.error('Error in bypass mode:', error)
     } finally {
       setLoading(false)
     }
@@ -243,18 +343,8 @@ export default function StudentDashboard() {
   }
 
   const fetchInternships = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('internships')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10)
-
-      if (error) throw error
-      if (data) setInternships(data)
-    } catch (error) {
-      console.error('Error fetching internships:', error)
-    }
+    // BYPASS: Skip Supabase call, mock data is set in fetchAllData
+    console.log('🚀 BYPASS: Skipping fetchInternships - using mock data')
   }
 
   const fetchUpdates = async () => {
@@ -303,89 +393,28 @@ export default function StudentDashboard() {
   }
 
   const fetchUserData = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          document_verifications (
-            aadhaar_verified,
-            digilocker_verified,
-            overall_verification_status
-          )
-        `)
-        .eq('id', user?.id)
-        .single()
-      
-      if (data) {
-        setUserData(data)
-        
-        // Check if this is a first-time user (profile not completed)
-        if (!data.profile_completed && (data.profile_step === 1 || !data.profile_step)) {
-          setActiveTab('profile-steps')
-          setShowProfileSteps(true)
-        }
-      }
-      if (error) console.error('Error fetching user data:', error)
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-    }
+    // BYPASS: Skip Supabase call, mock data is set in fetchAllData
+    console.log('🚀 BYPASS: Skipping fetchUserData - using mock data')
   }
 
   const fetchDocuments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-      
-      if (data) setDocuments(data)
-    } catch (error) {
-      console.error('Error fetching documents:', error)
-    }
+    // BYPASS: Skip Supabase call, mock data is set in fetchAllData
+    console.log('🚀 BYPASS: Skipping fetchDocuments - using mock data')
   }
 
   const fetchSkills = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('skills')
-        .select('*')
-        .eq('user_id', user?.id)
-      
-      if (data) setSkills(data)
-    } catch (error) {
-      console.error('Error fetching skills:', error)
-    }
+    // BYPASS: Skip Supabase call, mock data is set in fetchAllData
+    console.log('🚀 BYPASS: Skipping fetchSkills - using mock data')
   }
 
   const fetchApplications = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-      
-      if (data) setApplications(data)
-    } catch (error) {
-      console.error('Error fetching applications:', error)
-    }
+    // BYPASS: Skip Supabase call, mock data is set in fetchAllData
+    console.log('🚀 BYPASS: Skipping fetchApplications - using mock data')
   }
 
   const fetchNotifications = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('read', false)
-        .order('created_at', { ascending: false })
-      
-      if (data) setNotifications(data)
-    } catch (error) {
-      console.error('Error fetching notifications:', error)
-    }
+    // BYPASS: Skip Supabase call, mock data is set in fetchAllData
+    console.log('🚀 BYPASS: Skipping fetchNotifications - using mock data')
   }
 
   const handleMenuClick = (itemId: string) => {
@@ -402,9 +431,9 @@ export default function StudentDashboard() {
       return
     }
     
-    // Redirect to internships page for better experience
+    // Redirect to schemes page for better experience
     if (itemId === 'internships') {
-      window.location.href = '/internships'
+      window.location.href = '/schemes'
       return
     }
     
@@ -792,233 +821,7 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Government Information Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Internship Schemes */}
-          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
-            <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-4 rounded-t-lg">
-              <div className="flex items-center space-x-3">
-                <GraduationCap className="w-6 h-6" />
-                <h2 className="text-xl font-bold">Internship Schemes</h2>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="border-l-4 border-green-500 pl-4">
-                  <h3 className="font-semibold text-gray-900">PM Internship Program</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Government-sponsored internships across various ministries and departments.
-                  </p>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <CheckSquare className="w-4 h-4 text-green-600" />
-                    <span className="text-xs text-green-700">₹25,000 - ₹50,000 stipend</span>
-                  </div>
-                </div>
-                
-                <div className="border-l-4 border-blue-500 pl-4">
-                  <h3 className="font-semibold text-gray-900">Digital India Initiative</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Technology-focused internships in AI, ML, and digital governance.
-                  </p>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <CheckSquare className="w-4 h-4 text-blue-600" />
-                    <span className="text-xs text-blue-700">6-12 months duration</span>
-                  </div>
-                </div>
-                
-                <div className="border-l-4 border-purple-500 pl-4">
-                  <h3 className="font-semibold text-gray-900">Skill Development Program</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Hands-on training with industry mentors and certification.
-                  </p>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <CheckSquare className="w-4 h-4 text-purple-600" />
-                    <span className="text-xs text-purple-700">Certificate included</span>
-                  </div>
-                </div>
-              </div>
-              
-              <Link href="/schemes" className="block w-full mt-6 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-center">
-                Learn More About Schemes
-              </Link>
-            </div>
-          </div>
-
-          {/* Roadmap */}
-          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
-            <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white px-6 py-4 rounded-t-lg">
-              <div className="flex items-center space-x-3">
-                <Target className="w-6 h-6" />
-                <h2 className="text-xl font-bold">Application Roadmap</h2>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-green-600">1</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Complete Profile</h3>
-                    <p className="text-sm text-gray-600">Fill all required information and upload documents</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-blue-600">2</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Document Verification</h3>
-                    <p className="text-sm text-gray-600">Verify Aadhaar and educational certificates</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-yellow-600">3</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Skills Assessment</h3>
-                    <p className="text-sm text-gray-600">Take online tests to showcase your abilities</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-purple-600">4</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Apply for Internships</h3>
-                    <p className="text-sm text-gray-600">Browse and apply to matching opportunities</p>
-                  </div>
-                </div>
-              </div>
-              
-              <Link href="/roadmap" className="block w-full mt-6 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors text-center">
-                View Complete Roadmap
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Eligibility & Support */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Eligibility Criteria */}
-          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4 rounded-t-lg">
-              <div className="flex items-center space-x-3">
-                <CheckCircle className="w-6 h-6" />
-                <h2 className="text-xl font-bold">Eligibility Criteria</h2>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Age Requirement</h3>
-                    <p className="text-sm text-gray-600">18-28 years old</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Education</h3>
-                    <p className="text-sm text-gray-600">Minimum 12th pass or equivalent</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Citizenship</h3>
-                    <p className="text-sm text-gray-600">Indian citizen with valid Aadhaar</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Language</h3>
-                    <p className="text-sm text-gray-600">Basic English/Hindi proficiency</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <Info className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-900">Additional Benefits</span>
-                </div>
-                <ul className="text-sm text-blue-800 mt-2 space-y-1">
-                  <li>• Government certificate upon completion</li>
-                  <li>• Skill development training</li>
-                  <li>• Mentorship from industry experts</li>
-                  <li>• Networking opportunities</li>
-                </ul>
-              </div>
-              
-              <Link href="/eligibility" className="block w-full mt-6 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-center">
-                Check Full Eligibility
-              </Link>
-            </div>
-          </div>
-
-          {/* Support & Help */}
-          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
-            <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white px-6 py-4 rounded-t-lg">
-              <div className="flex items-center space-x-3">
-                <HelpCircle className="w-6 h-6" />
-                <h2 className="text-xl font-bold">Support & Help</h2>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <Phone className="w-5 h-5 text-teal-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Helpline</h3>
-                    <p className="text-sm text-gray-600">1800-XXX-XXXX (Toll Free)</p>
-                    <p className="text-xs text-gray-500">Mon-Fri, 9 AM - 6 PM</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <Mail className="w-5 h-5 text-teal-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Email Support</h3>
-                    <p className="text-sm text-gray-600">support@pminternship.gov.in</p>
-                    <p className="text-xs text-gray-500">Response within 24 hours</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <MessageSquare className="w-5 h-5 text-teal-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Live Chat</h3>
-                    <p className="text-sm text-gray-600">Available on website</p>
-                    <p className="text-xs text-gray-500">AI-powered instant support</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <Globe className="w-5 h-5 text-teal-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">FAQ & Resources</h3>
-                    <p className="text-sm text-gray-600">Comprehensive help center</p>
-                    <p className="text-xs text-gray-500">Step-by-step guides available</p>
-                  </div>
-                </div>
-              </div>
-              
-              <Link href="/support" className="block w-full mt-6 bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700 transition-colors text-center">
-                Contact Support Team
-              </Link>
-            </div>
-          </div>
-        </div>
+        {/* Removed: Government Information Sections (Internship Schemes, Roadmap, Eligibility, Support) */}
 
         {/* Quick Actions */}
         <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
@@ -1036,7 +839,7 @@ export default function StudentDashboard() {
             </button>
             
             <button 
-              onClick={() => setActiveTab('internships')}
+              onClick={() => window.location.href = '/schemes'}
               className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
             >
               <Briefcase className="w-6 h-6 text-indigo-600" />
@@ -1738,10 +1541,10 @@ export default function StudentDashboard() {
                       <User className="w-10 h-10 text-white" />
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1">
-                      {userData?.full_name || currentUser?.user_metadata?.full_name || 'Student Name'}
+                      {userData?.full_name || 'Development Student'}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-1">Student ID: STU-{currentUser?.id?.slice(-6) || '123456'}</p>
-                    <p className="text-xs text-gray-500 mb-3">{currentUser?.email}</p>
+                    <p className="text-sm text-gray-600 mb-1">Student ID: STU-{user?.id?.slice(-6) || '123456'}</p>
+                    <p className="text-xs text-gray-500 mb-3">{user?.email}</p>
                     
                     {/* Profile Completion */}
                     <div className="bg-white rounded-lg p-3 shadow-sm">

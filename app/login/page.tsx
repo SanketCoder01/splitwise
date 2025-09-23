@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { toast } from 'react-hot-toast'
-import { supabase } from '../../lib/supabase'
+import { supabase, isSupabaseConfigured, authenticateWithTimeout } from '../../lib/supabase'
 
 
 export default function StudentLoginPage() {
@@ -22,6 +22,7 @@ export default function StudentLoginPage() {
   const [step, setStep] = useState<'login'>('login')
   const [captchaCode, setCaptchaCode] = useState('G7X9M')
   const [errors, setErrors] = useState<{[key: string]: string}>({})
+  const [showDevBypass, setShowDevBypass] = useState(false)
   const router = useRouter()
 
 
@@ -37,6 +38,9 @@ export default function StudentLoginPage() {
 
   useEffect(() => {
     generateCaptcha()
+    
+    // Always show dev bypass for easy access during development
+    setShowDevBypass(true)
   }, [])
 
   // Check if user is already logged in
@@ -88,21 +92,38 @@ export default function StudentLoginPage() {
     try {
       console.log('🔄 Starting login process...')
       
-      // Sign in with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      })
+      // Check if Supabase is properly configured
+      if (!isSupabaseConfigured()) {
+        console.error('❌ Supabase not configured')
+        setErrors({ 
+          general: 'Database connection not configured. Please check environment variables.' 
+        })
+        toast.error('System configuration error. Please contact support.')
+        return
+      }
+      
+      // Use enhanced authentication with timeout
+      const { data, error } = await authenticateWithTimeout(
+        formData.email, 
+        formData.password, 
+        15000 // 15 second timeout
+      )
 
       if (error) {
         console.error('❌ Login error:', error)
         
-        if (error.message.includes('Invalid login credentials')) {
+        if (error.message.includes('timeout')) {
+          setErrors({ general: 'Request timed out. Please check your connection and try again.' })
+          toast.error('Connection timeout. Please try again.')
+        } else if (error.message.includes('Invalid login credentials')) {
           setErrors({ email: 'Invalid email or password' })
           toast.error('Invalid email or password')
         } else if (error.message.includes('Email not confirmed')) {
           setErrors({ email: 'Please check your email and confirm your account before logging in' })
           toast.error('Please verify your email first')
+        } else if (error.message.includes('not properly configured')) {
+          setErrors({ general: 'System configuration error. Please contact support.' })
+          toast.error('System configuration error. Please contact support.')
         } else {
           setErrors({ general: error.message || 'Login failed. Please try again.' })
           toast.error('Login failed. Please try again.')
@@ -130,11 +151,27 @@ export default function StudentLoginPage() {
       
     } catch (error: any) {
       console.error('❌ Unexpected login error:', error)
-      setErrors({ general: 'An unexpected error occurred. Please try again.' })
-      toast.error('Login failed. Please try again.')
+      
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('ERR_NAME_NOT_RESOLVED')) {
+        setErrors({ 
+          general: 'Unable to connect to authentication service. Please check your internet connection or contact support.' 
+        })
+        toast.error('Connection error. Please check your internet connection.')
+      } else {
+        setErrors({ general: 'An unexpected error occurred. Please try again.' })
+        toast.error('Login failed. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleDevBypass = () => {
+    setIsLoading(true)
+    toast.success('Development bypass activated! Going to dashboard...')
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 1000)
   }
 
 
@@ -342,6 +379,18 @@ export default function StudentLoginPage() {
                   <Lock className="w-4 h-4 text-orange-600" />
                   <span className="text-sm text-orange-600 font-medium">Secure Student Access</span>
                 </div>
+                
+                {/* Configuration Status */}
+                {!isSupabaseConfigured() && (
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="w-4 h-4 text-yellow-600" />
+                      <span className="text-sm text-yellow-800">
+                        Database configuration required
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
 
@@ -442,6 +491,20 @@ export default function StudentLoginPage() {
                         'Sign In'
                       )}
                     </motion.button>
+                    
+                    {/* Development Bypass Button */}
+                    {showDevBypass && (
+                      <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        type="button"
+                        onClick={handleDevBypass}
+                        disabled={isLoading}
+                        className="w-full mt-3 bg-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        🚀 Dev Bypass - Go to Dashboard
+                      </motion.button>
+                    )}
               </motion.form>
 
 
