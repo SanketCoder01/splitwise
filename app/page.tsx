@@ -21,6 +21,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
+
+const SimpleSlideGallery = dynamic(() => import('../components/SimpleSlideGallery'), { ssr: false })
 
 export default function HomePage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -30,25 +33,25 @@ export default function HomePage() {
 
   const heroSlides = [
     {
-      title: "AI-Powered Resume Verification",
-      subtitle: "Transform hiring with intelligent resume analysis and verification",
-      description: "Our advanced AI technology ensures authentic, accurate resume verification for better hiring decisions.",
-      image: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&h=500&fit=crop&crop=center",
-      cta: "Start Verification"
+      title: "Empowering India's Future",
+      subtitle: "Connecting talented students with premier government internships",
+      description: "Gain invaluable experience and contribute to nation-building with the PM Internship Portal.",
+      image: "https://images.unsplash.com/photo-1593113646773-9b2f14a0b7a8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      cta: "Explore Internships"
     },
     {
-      title: "Blockchain Security",
-      subtitle: "Tamper-proof verification with blockchain technology",
-      description: "Secure your hiring process with immutable blockchain-based verification records.",
-      image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=500&fit=crop&crop=center",
-      cta: "Learn More"
+      title: "Gateway to Public Service",
+      subtitle: "Launch your career in governance and public administration",
+      description: "Discover opportunities across various ministries and government departments.",
+      image: "https://images.unsplash.com/photo-1561347313-10c180fe463a?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      cta: "View Schemes"
     },
     {
-      title: "Government Certified",
-      subtitle: "Official verification by Government of India",
-      description: "Trusted by government agencies and enterprises across India for reliable verification.",
-      image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=500&fit=crop&crop=center",
-      cta: "Get Certified"
+      title: "Building a Skilled Nation",
+      subtitle: "Aligning academic knowledge with practical government experience",
+      description: "Our programs are designed to bridge the gap between education and employment in the public sector.",
+      image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      cta: "Register Now"
     }
   ]
 
@@ -141,12 +144,12 @@ export default function HomePage() {
     }
   ]
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
-    }, 5000)
-    return () => clearInterval(timer)
-  }, [heroSlides.length])
+  // useEffect(() => {
+  //   const timer = setInterval(() => {
+  //     setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
+  //   }, 5000)
+  //   return () => clearInterval(timer)
+  // }, [heroSlides.length])
 
   useEffect(() => {
     const featureTimer = setInterval(() => {
@@ -154,6 +157,14 @@ export default function HomePage() {
     }, 3000)
     return () => clearInterval(featureTimer)
   }, [features.length])
+
+  const handlePrev = () => {
+    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length)
+  }
+
+  const handleNext = () => {
+    setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -205,6 +216,31 @@ export default function HomePage() {
         .floating-image:nth-child(3) { top: 50%; animation-delay: 6s; }
         .floating-image:nth-child(4) { top: 70%; animation-delay: 9s; }
         .floating-image:nth-child(5) { top: 85%; animation-delay: 12s; }
+        .hero-arrow {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background-color: rgba(0, 0, 0, 0.5);
+          color: white;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+          z-index: 10;
+        }
+        .hero-arrow:hover {
+          background-color: rgba(0, 0, 0, 0.8);
+        }
+        .hero-arrow.left {
+          left: 1rem;
+        }
+        .hero-arrow.right {
+          right: 1rem;
+        }
         
         @keyframes floatRightToLeft {
           0% { 
@@ -259,19 +295,17 @@ export default function HomePage() {
         
         @keyframes slideRightToLeft {
           0% { 
-            transform: translateX(100vw) scale(0.8);
+            transform: translateX(100vw);
             opacity: 0;
           }
-          10% { 
-            opacity: 0.7;
-            transform: scale(1);
+          5% { 
+            opacity: 1;
           }
-          90% { 
-            opacity: 0.7;
-            transform: scale(1);
+          95% { 
+            opacity: 1;
           }
           100% { 
-            transform: translateX(-400px) scale(0.8);
+            transform: translateX(-100vw);
             opacity: 0;
           }
         }
@@ -283,6 +317,23 @@ export default function HomePage() {
         
         .animate-marquee {
           animation: marquee 30s linear infinite;
+        }
+        
+        @keyframes slideUpNotifications {
+          0% { 
+            transform: translateY(100%);
+          }
+          100% { 
+            transform: translateY(-100%);
+          }
+        }
+        
+        .animate-slide-up-notifications {
+          animation: slideUpNotifications 30s linear infinite;
+        }
+        
+        .animate-slide-up-notifications:hover {
+          animation-play-state: paused;
         }
       `}</style>
 
@@ -379,6 +430,10 @@ export default function HomePage() {
                   <Award className="w-4 h-4 xl:w-5 xl:h-5" />
                   <span className="font-medium">SUPPORT</span>
                 </Link>
+                <Link href="/apply" className="flex items-center space-x-2 xl:space-x-3 hover:text-orange-300 transition-colors px-2 xl:px-4 py-2 rounded text-sm xl:text-base">
+                  <FileText className="w-4 h-4 xl:w-5 xl:h-5" />
+                  <span className="font-medium">APPLY</span>
+                </Link>
               </div>
             </div>
           </nav>
@@ -416,6 +471,10 @@ export default function HomePage() {
                   <Link href="/support" className="flex items-center space-x-3 hover:text-orange-300 transition-colors px-4 py-3 rounded-lg hover:bg-blue-800">
                     <Award className="w-5 h-5" />
                     <span className="font-medium">SUPPORT</span>
+                  </Link>
+                  <Link href="/apply" className="flex items-center space-x-3 hover:text-orange-300 transition-colors px-4 py-3 rounded-lg hover:bg-blue-800">
+                    <FileText className="w-5 h-5" />
+                    <span className="font-medium">APPLY</span>
                   </Link>
                   
                   {/* Mobile Login Buttons */}
@@ -532,336 +591,351 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="space-y-12">
-            {/* Live Updates Section */}
-            <motion.div
-              initial={{ opacity: 0, x: -100 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-8 border-l-4 border-blue-500 hover:shadow-lg transition-all duration-300"
-            >
-              <div className="flex items-start space-x-6">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Bell className="w-8 h-8 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">Live Updates & Notifications</h3>
-                  <p className="text-gray-700 mb-6 leading-relaxed">
-                    Stay informed with real-time updates on new internship opportunities, application deadlines,
-                    verification status, and important announcements from various government ministries.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-blue-600 mb-1">24/7</div>
-                      <div className="text-sm text-gray-600">Real-time Monitoring</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-green-600 mb-1">50K+</div>
-                      <div className="text-sm text-gray-600">Active Users</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-purple-600 mb-1">100%</div>
-                      <div className="text-sm text-gray-600">Uptime Guarantee</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Government Internship Schemes Section */}
-            <motion.div
-              initial={{ opacity: 0, x: 100 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-8 border-l-4 border-green-500 hover:shadow-lg transition-all duration-300"
-            >
-              <div className="flex items-start space-x-6">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Users className="w-8 h-8 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">Government Internship Schemes</h3>
-                  <p className="text-gray-700 mb-6 leading-relaxed">
-                    Access exclusive internship opportunities across 25+ government ministries and departments.
-                    From technical roles in DRDO/ISRO to administrative positions in various ministries,
-                    find the perfect opportunity to serve the nation.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-green-600 mb-1">25+</div>
-                      <div className="text-sm text-gray-600">Ministries</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-blue-600 mb-1">50K+</div>
-                      <div className="text-sm text-gray-600">Opportunities</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-purple-600 mb-1">₹25K</div>
-                      <div className="text-sm text-gray-600">Avg. Stipend</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Roadmap Section */}
-            <motion.div
-              initial={{ opacity: 0, x: -100 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-8 border-l-4 border-orange-500 hover:shadow-lg transition-all duration-300"
-            >
-              <div className="flex items-start space-x-6">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Target className="w-8 h-8 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">Implementation Roadmap</h3>
-                  <p className="text-gray-700 mb-6 leading-relaxed">
-                    Our strategic roadmap ensures continuous improvement and expansion of internship opportunities.
-                    From AI-powered verification to mobile applications, we're building the future of government internships.
-                  </p>
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span className="text-gray-700">Phase 1: Platform Launch (Completed)</span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-gray-700">Phase 2: AI Integration (In Progress)</span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                      <span className="text-gray-700">Phase 3: Multi-Ministry Expansion (Upcoming)</span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                      <span className="text-gray-700">Phase 4: Mobile Application (Planned)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Resume Verifier Features Section */}
-            <motion.div
-              initial={{ opacity: 0, x: 100 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg p-8 border-l-4 border-purple-500 hover:shadow-lg transition-all duration-300"
-            >
-              <div className="flex items-start space-x-6">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <FileCheck className="w-8 h-8 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">Resume Verifier Features</h3>
-                  <p className="text-gray-700 mb-6 leading-relaxed">
-                    Advanced AI-powered resume verification ensures authenticity and accuracy. Our blockchain-secured
-                    system provides tamper-proof verification for educational certificates, work experience, and skills assessment.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
-                      <FileCheck className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Document Verification</div>
-                      <div className="text-sm text-gray-600">Certificate Validation</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
-                      <Target className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Skills Assessment</div>
-                      <div className="text-sm text-gray-600">AI Matching</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
-                      <Award className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Experience Validation</div>
-                      <div className="text-sm text-gray-600">Work History Check</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
-                      <Cpu className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Real-time Processing</div>
-                      <div className="text-sm text-gray-600">Instant Results</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Government Internship Schemes Section */}
-      <section className="py-12 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">Government Internship Schemes</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Explore various government internship opportunities across different ministries and departments
-            </p>
+          {/* Simple Slide Gallery */}
+          <div className="h-96 w-full mb-16">
+            <SimpleSlideGallery 
+              items={[
+                {
+                  image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=600&fit=crop&crop=center",
+                  text: "IIT Delhi Campus"
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=800&h=600&fit=crop&crop=center",
+                  text: "Indian Institute of Science"
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1562774053-701939374585?w=800&h=600&fit=crop&crop=center",
+                  text: "University Library"
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?w=800&h=600&fit=crop&crop=center",
+                  text: "Research Laboratory"
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop&crop=center",
+                  text: "Student Innovation Hub"
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800&h=600&fit=crop&crop=center",
+                  text: "Digital Learning Center"
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?w=800&h=600&fit=crop&crop=center",
+                  text: "Indian Parliament"
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&h=600&fit=crop&crop=center",
+                  text: "Engineering Excellence"
+                }
+              ]}
+              autoSlide={true}
+              slideInterval={4000}
+              showText={true}
+              textColor="#ffffff"
+            />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { title: "PM Internship Scheme", dept: "Ministry of Education", slots: "10,000+", icon: Users },
-              { title: "Digital India Internship", dept: "Ministry of Electronics & IT", slots: "5,000+", icon: Cpu },
-              { title: "Skill Development Program", dept: "Ministry of Skill Development", slots: "15,000+", icon: Target },
-              { title: "Research Internship", dept: "DRDO & ISRO", slots: "2,000+", icon: Award },
-              { title: "Banking Sector Internship", dept: "Ministry of Finance", slots: "8,000+", icon: Shield },
-              { title: "Healthcare Internship", dept: "Ministry of Health", slots: "12,000+", icon: FileCheck }
-            ].map((scheme, index) => (
-              <div key={index} className="bg-white rounded-lg p-6 shadow-md hover:shadow-xl hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 border border-gray-200 hover:border-blue-200 transform hover:-translate-y-1">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mr-4 group-hover:bg-blue-100 transition-colors">
-                    <scheme.icon className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">{scheme.title}</h3>
-                    <p className="text-sm text-gray-600">{scheme.dept}</p>
-                  </div>
+          {/* Notifications and Placements Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+            {/* Left Side - Live Notifications */}
+            <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <h3 className="text-xl font-bold text-gray-900">Live Updates</h3>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-gray-700">{scheme.slots}</span>
-                  <span className="text-sm text-gray-500">Available Slots</span>
+                <span className="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">LIVE</span>
+              </div>
+              
+              <div className="space-y-3 h-80 overflow-hidden relative">
+                <div className="animate-slide-up-notifications space-y-3">
+                  {[
+                    { message: 'New internship posted: Software Developer at NIC Delhi', time: '2 min ago' },
+                    { message: 'Resume verified successfully for Arjun Kumar', time: '5 min ago' },
+                    { message: 'Application deadline extended for Digital India Program', time: '8 min ago' },
+                    { message: 'Interview scheduled: Data Analyst at ISRO Bangalore', time: '12 min ago' },
+                    { message: 'New placement: Software Engineer at Ministry of IT', time: '15 min ago' },
+                    { message: 'Skills assessment completed for 50+ candidates', time: '18 min ago' },
+                    { message: 'AI matching improved: 98% accuracy achieved', time: '22 min ago' },
+                    { message: 'Document verification completed for Tech Mahindra', time: '25 min ago' },
+                    { message: 'New government scheme launched for engineering students', time: '28 min ago' },
+                    { message: 'Resume template downloaded 1000+ times today', time: '32 min ago' }
+                  ].map((notification, index) => (
+                    <div key={index} className="flex items-start p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer border-l-4 border-blue-500">
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-800 font-medium">{notification.message}</p>
+                        <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </div>
 
-      {/* Resume Verifier Features Section */}
-      <section className="py-12 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">AI-Powered Resume Verifier</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Advanced AI technology to verify and validate resumes for government internship programs
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { title: "Document Verification", desc: "Verify educational certificates and documents", icon: FileCheck },
-              { title: "Skills Assessment", desc: "AI-powered skills matching and validation", icon: Target },
-              { title: "Experience Validation", desc: "Verify work experience and internships", icon: Award },
-              { title: "Real-time Processing", desc: "Instant verification with blockchain security", icon: Cpu }
-            ].map((feature, index) => (
-              <div key={index} className="text-center p-6 rounded-lg bg-white hover:bg-gradient-to-br hover:from-purple-50 hover:to-violet-50 hover:shadow-lg transition-all duration-300 border border-gray-200 hover:border-purple-200 transform hover:-translate-y-1">
-                <div className="w-16 h-16 mx-auto mb-4 bg-purple-50 rounded-full flex items-center justify-center hover:bg-purple-100 transition-colors">
-                  <feature.icon className="w-8 h-8 text-purple-600" />
+            {/* Right Side - Top Placements */}
+            <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">🏆</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">Top Placements</h3>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">HIGH PACKAGE</span>
               </div>
-            ))}
+              
+              <div className="space-y-4 h-80 overflow-y-auto">
+                {[
+                  {
+                    name: 'Arjun Mehta',
+                    company: 'DRDO',
+                    package: '₹8.5 LPA',
+                    position: 'Research Scientist',
+                    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+                    location: 'New Delhi'
+                  },
+                  {
+                    name: 'Priya Sharma',
+                    company: 'ISRO',
+                    package: '₹7.8 LPA',
+                    position: 'Aerospace Engineer',
+                    image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
+                    location: 'Bangalore'
+                  },
+                  {
+                    name: 'Rahul Kumar',
+                    company: 'NIC',
+                    package: '₹7.2 LPA',
+                    position: 'Software Developer',
+                    image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+                    location: 'Mumbai'
+                  },
+                  {
+                    name: 'Sneha Patel',
+                    company: 'Ministry of Finance',
+                    package: '₹6.8 LPA',
+                    position: 'Financial Analyst',
+                    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+                    location: 'New Delhi'
+                  },
+                  {
+                    name: 'Vikash Yadav',
+                    company: 'Digital India Corp',
+                    package: '₹6.5 LPA',
+                    position: 'Digital Marketing Lead',
+                    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
+                    location: 'Pune'
+                  },
+                  {
+                    name: 'Anita Singh',
+                    company: 'Ministry of Health',
+                    package: '₹6.2 LPA',
+                    position: 'Health Policy Analyst',
+                    image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face',
+                    location: 'Chennai'
+                  }
+                ].map((student, index) => (
+                  <div key={index} className="flex items-center space-x-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200 hover:shadow-md transition-all">
+                    <img 
+                      src={student.image} 
+                      alt={student.name}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                    />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">{student.name}</h4>
+                      <p className="text-sm text-gray-600">{student.position}</p>
+                      <p className="text-xs text-gray-500">{student.company} • {student.location}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-green-600">{student.package}</div>
+                      <div className="text-xs text-gray-500">Annual Package</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* Roadmap Section */}
-      <section className="py-12 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">Implementation Roadmap</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Our strategic roadmap for expanding government internship opportunities across India
-            </p>
-          </div>
-          
-          <div className="max-w-4xl mx-auto">
-            <div className="space-y-8">
+          {/* AI Features Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="mb-16"
+          >
+            <div className="text-center mb-10">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">AI-Powered Features</h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Advanced artificial intelligence to enhance your internship and career journey
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { phase: "Phase 1", title: "Platform Launch", desc: "Launch of PM Internship portal with basic features", status: "Completed", color: "bg-gray-600" },
-                { phase: "Phase 2", title: "AI Integration", desc: "Integration of AI-powered resume verification system", status: "In Progress", color: "bg-gray-600" },
-                { phase: "Phase 3", title: "Multi-Ministry Expansion", desc: "Expansion to all government ministries and departments", status: "Upcoming", color: "bg-gray-400" },
-                { phase: "Phase 4", title: "Mobile Application", desc: "Launch of mobile app for students and officials", status: "Planned", color: "bg-gray-300" }
-              ].map((item, index) => (
-                <div key={index} className="flex items-center space-x-6 p-6 bg-white rounded-lg shadow-md hover:shadow-xl hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 transition-all duration-300 border border-gray-200 hover:border-orange-200 transform hover:-translate-y-1">
-                  <div className={`w-4 h-4 rounded-full ${item.color}`}></div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-4 mb-2">
-                      <h3 className="text-xl font-bold text-gray-900">{item.phase}</h3>
-                      <span className={`px-3 py-1 rounded text-sm font-medium ${
-                        item.status === 'Completed' ? 'bg-gray-200 text-gray-800' :
-                        item.status === 'In Progress' ? 'bg-gray-200 text-gray-800' :
-                        item.status === 'Upcoming' ? 'bg-gray-100 text-gray-700' :
-                        'bg-gray-100 text-gray-600'
-                      }`}>{item.status}</span>
-                    </div>
-                    <h4 className="text-lg font-semibold text-gray-800 mb-1">{item.title}</h4>
-                    <p className="text-gray-600">{item.desc}</p>
-                  </div>
+                {
+                  icon: '🤖',
+                  title: 'AI Resume Analyzer',
+                  description: 'Smart resume parsing and skill extraction with 98% accuracy'
+                },
+                {
+                  icon: '🎯',
+                  title: 'Intelligent Matching',
+                  description: 'AI-powered job matching based on skills and preferences'
+                },
+                {
+                  icon: '📊',
+                  title: 'Performance Analytics',
+                  description: 'Real-time insights and career progression tracking'
+                },
+                {
+                  icon: '🔍',
+                  title: 'Smart Search',
+                  description: 'Natural language search for internships and opportunities'
+                }
+              ].map((feature, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <div className="text-4xl mb-4 text-center">{feature.icon}</div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 text-center">{feature.title}</h3>
+                  <p className="text-sm text-gray-600 text-center">{feature.description}</p>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
+          </motion.div>
 
-      {/* Real-Time Stats & Updates Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Real-Time Platform Statistics</h2>
+          {/* Pricing Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="mb-16"
+          >
+            <div className="text-center mb-10">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Choose Your Plan</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Live data from India's most comprehensive government internship and resume verification platform
+                Flexible pricing options to suit your career development needs
               </p>
-            </motion.div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
-                className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-100 card-hover hover-scale glow-effect animate-slide-up"
-              >
-                <div className={`w-16 h-16 ${stat.color} bg-opacity-10 rounded-2xl flex items-center justify-center mx-auto mb-6 animate-float`}>
-                  <stat.icon className={`w-8 h-8 ${stat.color} animate-spin-slow`} />
-                </div>
-                <div className={`text-4xl font-bold ${stat.color} mb-2 text-center animate-count-up`}>{stat.number}</div>
-                <div className="text-gray-600 text-center font-medium animate-fade-in">{stat.label}</div>
-                <div className="text-xs text-green-600 text-center mt-2 font-semibold animate-pulse-custom">
-                  📈 Live Updates
-                </div>
-              </motion.div>
-            ))}
-          </div>
+            </div>
 
-        </div>
-      </section>
-
-      {/* Simple Services Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Services</h2>
-            <p className="text-gray-600">Simple and effective resume verification solutions</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <feature.icon className="w-6 h-6 text-blue-600" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {/* Free Trial */}
+              <div className="bg-white rounded-lg shadow-lg border-2 border-gray-200 p-8 hover:shadow-2xl hover:scale-105 transition-all duration-300 relative">
+                <div className="text-center">
+                  <div className="text-6xl font-bold text-gray-900 mb-2">₹0</div>
+                  <div className="text-lg font-semibold text-gray-600 mb-6">Free Trial</div>
+                  
+                  <ul className="space-y-3 mb-8 text-left">
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">3 Free AI Internship Finder Attempts</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">1 Free Complete Assessment</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Basic Resume Analysis</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Standard Support</span>
+                    </li>
+                  </ul>
+                  
+                  <button className="w-full bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors">
+                    Start Free Trial
+                  </button>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">{feature.title}</h3>
-                <p className="text-gray-600 text-center text-sm">{feature.description}</p>
               </div>
-            ))}
-          </div>
+
+              {/* Basic Plan */}
+              <div className="bg-white rounded-lg shadow-lg border-2 border-blue-500 p-8 hover:shadow-2xl hover:scale-105 transition-all duration-300 relative">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium">Popular</span>
+                </div>
+                <div className="text-center">
+                  <div className="text-6xl font-bold text-blue-600 mb-2">₹99</div>
+                  <div className="text-lg font-semibold text-gray-600 mb-6">Per Month</div>
+                  
+                  <ul className="space-y-3 mb-8 text-left">
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Unlimited AI Internship Finder</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">5 Complete Assessments</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Advanced Resume Analysis</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Priority Support</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Interview Preparation</span>
+                    </li>
+                  </ul>
+                  
+                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors">
+                    Choose Plan
+                  </button>
+                </div>
+              </div>
+
+              {/* Premium Plan */}
+              <div className="bg-white rounded-lg shadow-lg border-2 border-purple-500 p-8 hover:shadow-2xl hover:scale-105 transition-all duration-300 relative">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-medium">Best Value</span>
+                </div>
+                <div className="text-center">
+                  <div className="text-6xl font-bold text-purple-600 mb-2">₹299</div>
+                  <div className="text-lg font-semibold text-gray-600 mb-6">Per Month</div>
+                  
+                  <ul className="space-y-3 mb-8 text-left">
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Everything in Basic Plan</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Unlimited Assessments</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">AI Career Counseling</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Premium Support (24/7)</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Personalized Learning Path</span>
+                    </li>
+                    <li className="flex items-center space-x-3">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm">Direct Recruiter Connect</span>
+                    </li>
+                  </ul>
+                  
+                  <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors">
+                    Choose Plan
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
+
+
+
 
       {/* Simple CTA Section */}
       <section className="py-16 bg-blue-600 text-white">

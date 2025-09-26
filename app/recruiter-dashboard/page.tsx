@@ -248,7 +248,9 @@ export default function RecruiterDashboard() {
               />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">PM Internship Portal</h1>
-                <p className="text-sm text-gray-600">Recruiter Dashboard</p>
+                <p className="text-sm text-gray-600">
+                  {recruiterData?.company_name ? `${recruiterData.company_name} - Recruiter Dashboard` : 'Recruiter Dashboard'}
+                </p>
               </div>
             </div>
             

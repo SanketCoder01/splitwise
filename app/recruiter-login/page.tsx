@@ -68,44 +68,56 @@ export default function RecruiterLoginPage() {
     setIsLoading(true)
     
     try {
-      // Test credentials for recruiters/organizations
-      const validCredentials = {
-        'ORG001': { password: 'recruiter123', name: 'Tata Consultancy Services', type: 'Private Company', sector: 'IT Services' },
-        'ORG002': { password: 'recruiter123', name: 'Infosys Limited', type: 'Private Company', sector: 'Technology' },
-        'ORG003': { password: 'recruiter123', name: 'BHEL', type: 'PSU', sector: 'Engineering' },
-        'PSU001': { password: 'psu123', name: 'Indian Oil Corporation', type: 'PSU', sector: 'Oil & Gas' },
-        'STARTUP001': { password: 'startup123', name: 'Digital India Startup', type: 'Startup', sector: 'Technology' }
+      // Check if recruiter exists in database
+      const { data: existingRecruiter, error } = await supabase
+        .from('recruiter_profiles')
+        .select('*')
+        .eq('gov_id', formData.organizationId)
+        .single()
+
+      if (existingRecruiter) {
+        // Verify password
+        if (existingRecruiter.password !== formData.password) {
+          setErrors({ password: 'Invalid password' })
+          setIsLoading(false)
+          return
+        }
+
+        // Store recruiter data in session storage
+        sessionStorage.setItem('recruiter_data', JSON.stringify(existingRecruiter))
+        
+        toast.success(`Welcome back ${existingRecruiter.company_name || 'Recruiter'}!`)
+      } else {
+        // Create new recruiter account with basic info
+        const newRecruiterData = {
+          gov_id: formData.organizationId,
+          password: formData.password,
+          email: `${formData.organizationId.toLowerCase()}@gov.in`,
+          profile_completed: false,
+          profile_step: 1,
+          approval_status: 'pending',
+          created_at: new Date().toISOString()
+        }
+
+        const { data: newRecruiter, error: insertError } = await supabase
+          .from('recruiter_profiles')
+          .insert([newRecruiterData])
+          .select()
+          .single()
+
+        if (insertError) {
+          console.error('Error creating recruiter:', insertError)
+          setErrors({ general: 'Failed to create account. Please try again.' })
+          setIsLoading(false)
+          return
+        }
+
+        // Store new recruiter data in session storage
+        sessionStorage.setItem('recruiter_data', JSON.stringify(newRecruiter))
+        
+        toast.success('Account created successfully!')
       }
       
-      const credential = validCredentials[formData.organizationId as keyof typeof validCredentials]
-      
-      if (!credential) {
-        setErrors({ organizationId: 'Invalid Organization ID. Use: ORG001, ORG002, ORG003, PSU001, or STARTUP001' })
-        setIsLoading(false)
-        return
-      }
-      
-      if (credential.password !== formData.password) {
-        setErrors({ password: 'Invalid Password. Check credentials: recruiter123, psu123, or startup123' })
-        setIsLoading(false)
-        return
-      }
-      
-      // Create mock recruiter data
-      const recruiterData = {
-        organization_id: formData.organizationId,
-        organization_name: credential.name,
-        organization_type: credential.type,
-        sector: credential.sector,
-        email: `hr@${formData.organizationId.toLowerCase()}.com`,
-        verified: true,
-        permissions: ['post_internships', 'view_applications', 'interview_students']
-      }
-      
-      // Store recruiter data in session storage
-      sessionStorage.setItem('recruiter_data', JSON.stringify(recruiterData))
-      
-      toast.success(`Welcome ${credential.name}!`)
       setStep('otp')
       
     } catch (error) {

@@ -3,6 +3,8 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, FileText, CheckCircle, AlertCircle, Loader2, X } from 'lucide-react'
+import ResumeDataReview from './ResumeDataReview'
+import { extractResumeData as extractFromImageOrPdf } from '../utils/ocrExtractor'
 
 interface ResumeUploadProps {
   onResumeExtracted: (extractedData: any) => void
@@ -16,6 +18,8 @@ export default function ResumeUpload({ onResumeExtracted, hasExistingResume = fa
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [extractionStatus, setExtractionStatus] = useState<'idle' | 'extracting' | 'success' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [extractedData, setExtractedData] = useState<any>(null)
+  const [showReview, setShowReview] = useState(false)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -34,10 +38,10 @@ export default function ResumeUpload({ onResumeExtracted, hasExistingResume = fa
     const files = Array.from(e.dataTransfer.files)
     const file = files[0]
     
-    if (file && (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+    if (file && (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type.startsWith('image/'))) {
       handleFileUpload(file)
     } else {
-      setError('Please upload a PDF or DOCX file')
+      setError('Please upload a PDF, DOCX, or image file (JPG/PNG)')
     }
   }, [])
 
@@ -66,35 +70,73 @@ export default function ResumeUpload({ onResumeExtracted, hasExistingResume = fa
         })
       }, 200)
 
-      // Create FormData for file upload
-      const formData = new FormData()
-      formData.append('resume', file)
+      // Branch: images handled client-side OCR; PDFs/DOCX via API
+      if (file.type.startsWith('image/')) {
+        // Client-side OCR using Tesseract.js via utils
+        const extracted = await extractFromImageOrPdf(file)
 
-      // Upload and extract resume data
-      const response = await fetch('/api/resume/extract', {
-        method: 'POST',
-        body: formData,
-      })
+        // Map to ResumeDataReview format
+        const mapped = {
+          personalInfo: {
+            name: extracted.personalInfo.name,
+            email: extracted.personalInfo.email,
+            phone: extracted.personalInfo.phone,
+            location: extracted.personalInfo.location,
+            linkedin: extracted.socialProfiles.linkedin,
+            github: extracted.socialProfiles.github,
+          },
+          experience: (extracted.experience || []).map((exp: any, idx: number) => ({
+            id: `exp-${idx + 1}`,
+            company: exp.company,
+            position: exp.title,
+            duration: exp.duration,
+            description: exp.description,
+          })),
+          education: (extracted.education || []).map((edu: any, idx: number) => ({
+            id: `edu-${idx + 1}`,
+            institution: edu.institution,
+            degree: edu.degree,
+            year: edu.year,
+          })),
+          skills: {
+            technical: extracted.skills || [],
+            soft: [] as string[],
+          },
+        }
 
-      clearInterval(progressInterval)
-      setUploadProgress(100)
+        clearInterval(progressInterval)
+        setUploadProgress(100)
+        setExtractionStatus('success')
+        setIsUploading(false)
+        setExtractedData(mapped)
+        setShowReview(true)
+      } else {
+        // Create FormData for file upload (PDF/DOCX)
+        const formData = new FormData()
+        formData.append('resume', file)
 
-      if (!response.ok) {
-        throw new Error('Failed to process resume')
+        // Upload and extract resume data via server
+        const response = await fetch('/api/resume/extract', {
+          method: 'POST',
+          body: formData,
+        })
+
+        clearInterval(progressInterval)
+        setUploadProgress(100)
+
+        if (!response.ok) {
+          throw new Error('Failed to process resume')
+        }
+
+        const extractedData = await response.json()
+
+        setExtractionStatus('success')
+        setIsUploading(false)
+
+        // Store extracted data and show review component
+        setExtractedData(extractedData.data)
+        setShowReview(true)
       }
-
-      const extractedData = await response.json()
-      
-      setExtractionStatus('extracting')
-      
-      // Simulate extraction process
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      setExtractionStatus('success')
-      setIsUploading(false)
-      
-      // Pass extracted data to parent component
-      onResumeExtracted(extractedData)
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process resume')
@@ -108,6 +150,19 @@ export default function ResumeUpload({ onResumeExtracted, hasExistingResume = fa
     setUploadProgress(0)
     setExtractionStatus('idle')
     setError(null)
+    setExtractedData(null)
+    setShowReview(false)
+  }
+
+  const handleDataConfirmed = (confirmedData: any) => {
+    // Pass confirmed data to parent component
+    onResumeExtracted(confirmedData)
+    setShowReview(false)
+  }
+
+  const handleReviewCancel = () => {
+    setShowReview(false)
+    setExtractionStatus('idle')
   }
 
   if (hasExistingResume && extractionStatus !== 'idle') {
@@ -168,7 +223,7 @@ export default function ResumeUpload({ onResumeExtracted, hasExistingResume = fa
               <input
                 type="file"
                 className="hidden"
-                accept=".pdf,.docx"
+                accept=".pdf,.docx,.jpg,.jpeg,.png"
                 onChange={handleFileSelect}
               />
             </label>
@@ -280,6 +335,24 @@ export default function ResumeUpload({ onResumeExtracted, hasExistingResume = fa
           Supported formats: PDF, DOCX • Maximum file size: 10MB
         </p>
       </div>
+
+      {/* Resume Data Review */}
+      <AnimatePresence>
+        {showReview && extractedData && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="mt-8"
+          >
+            <ResumeDataReview
+              extractedData={extractedData}
+              onDataConfirmed={handleDataConfirmed}
+              onCancel={handleReviewCancel}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

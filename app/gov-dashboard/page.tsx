@@ -12,6 +12,8 @@ import {
 import Image from 'next/image'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import toast from 'react-hot-toast'
+import GovernmentResumeVerifier from '../../components/GovernmentResumeVerifier'
 import StudentVerification from '../../components/StudentVerification'
 import SmartAllocation from '../../components/SmartAllocation'
 import ReportsAnalytics from '../../components/ReportsAnalytics'
@@ -1060,7 +1062,7 @@ export default function GovernmentDashboard() {
               {activeTab === 'dashboard' && renderOverview()}
               {activeTab === 'internship-management' && renderInternshipManagement()}
               {activeTab === 'student-verification' && renderStudentVerification()}
-              {activeTab === 'resume-verifier' && renderResumeVerifier()}
+              {activeTab === 'resume-verifier' && <GovernmentResumeVerifier />}
               {activeTab === 'document-validation' && renderDocumentValidation()}
               {activeTab === 'smart-allocation' && renderSmartAllocation()}
               {activeTab === 'fraud-detection' && renderFraudDetection()}

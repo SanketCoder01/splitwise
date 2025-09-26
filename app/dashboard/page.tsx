@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  User, FileText, Award, Settings, LogOut, Bell, Menu, X, 
-  Briefcase, MessageSquare, FileCheck, Edit, Save, Plus, Download,
-  Home, Upload, CheckCircle, Clock, Star, HelpCircle, Shield,
-  Phone, Mail, MapPin, Calendar, BookOpen, Zap, Target, TrendingUp,
-  Lock, Unlock, ChevronRight, ExternalLink, AlertCircle, Info,
-  Users, Building, Globe, Newspaper, PlayCircle, ArrowRight,
-  CheckSquare, DollarSign, GraduationCap, Heart, Search, Filter
+  Bell, User, Settings, HelpCircle, FileText, Calendar, Award, TrendingUp, 
+  Users, Building, MapPin, Clock, DollarSign, Briefcase, GraduationCap, 
+  Shield, Star, ChevronRight, Plus, Search, Filter, Download, Upload, 
+  CheckSquare, Heart, Edit3, X, Menu, Home, FileCheck, Target, MessageSquare,
+  Newspaper, ArrowRight, CheckCircle, AlertCircle, ExternalLink, Eye,
+  BarChart3, BookOpen, Zap, Globe, Cpu, Code, Database, Palette, LogOut,
+  PlayCircle, Phone, Mail, Lock
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -19,6 +19,8 @@ import toast from 'react-hot-toast'
 import DocumentVerification from '../../components/DocumentVerification'
 import DocumentVerificationNew from '../../components/DocumentVerificationNew'
 import MultiStepProfile from '../../components/MultiStepProfile'
+import EnhancedSkillsAssessment from '../../components/EnhancedSkillsAssessment'
+import RealResumeVerifier from '../../components/RealResumeVerifier'
 import SkillsAssessment from '../../components/SkillsAssessment'
 import GrievanceManagement from '../../components/GrievanceManagement'
 import EnhancedDocumentUpload from '../../components/EnhancedDocumentUpload'
@@ -101,31 +103,29 @@ export default function StudentDashboard() {
     if (isProfileComplete) {
       menuItems.push(
         { id: 'dashboard', label: 'Dashboard Overview', icon: Home, color: 'text-blue-600', locked: false },
-        { id: 'documents', label: 'Document Verification', icon: FileCheck, color: 'text-purple-600', locked: false },
-        { id: 'settings', label: 'Settings & Help', icon: Settings, color: 'text-gray-600', locked: false }
+        { id: 'documents', label: 'Document Verification', icon: FileCheck, color: 'text-purple-600', locked: false }
       )
 
       // Additional features unlock after document verification
       menuItems.push(
         { id: 'resume', label: 'Resume Builder', icon: FileText, color: 'text-orange-600', locked: !isDocumentVerified },
+        { id: 'resume-verifier', label: 'Resume Verifier', icon: Shield, color: 'text-green-600', locked: !isDocumentVerified },
         { id: 'skills', label: 'Skills Assessment', icon: Award, color: 'text-yellow-600', locked: !isDocumentVerified },
         { id: 'internships', label: 'Find Internships', icon: Briefcase, color: 'text-indigo-600', locked: !isDocumentVerified },
         { id: 'applications', label: 'My Applications', icon: Target, color: 'text-red-600', locked: !isDocumentVerified },
-        { id: 'grievance', label: 'Support & Grievance', icon: MessageSquare, color: 'text-pink-600', locked: false },
-        { id: 'notifications', label: 'Notifications', icon: Bell, color: 'text-teal-600', locked: false }
+        { id: 'grievance', label: 'Support & Grievance', icon: MessageSquare, color: 'text-pink-600', locked: false }
       )
     } else {
       // Show locked items when profile is not complete
       menuItems.push(
         { id: 'dashboard', label: 'Dashboard Overview', icon: Home, color: 'text-gray-400', locked: true },
         { id: 'documents', label: 'Document Verification', icon: FileCheck, color: 'text-gray-400', locked: true },
-        { id: 'settings', label: 'Settings & Help', icon: Settings, color: 'text-gray-400', locked: true },
         { id: 'resume', label: 'Resume Builder', icon: FileText, color: 'text-gray-400', locked: true },
+        { id: 'resume-verifier', label: 'Resume Verifier', icon: Shield, color: 'text-gray-400', locked: true },
         { id: 'skills', label: 'Skills Assessment', icon: Award, color: 'text-gray-400', locked: true },
         { id: 'internships', label: 'Find Internships', icon: Briefcase, color: 'text-gray-400', locked: true },
         { id: 'applications', label: 'My Applications', icon: Target, color: 'text-gray-400', locked: true },
-        { id: 'grievance', label: 'Support & Grievance', icon: MessageSquare, color: 'text-gray-400', locked: true },
-        { id: 'notifications', label: 'Notifications', icon: Bell, color: 'text-gray-400', locked: true }
+        { id: 'grievance', label: 'Support & Grievance', icon: MessageSquare, color: 'text-gray-400', locked: true }
       )
     }
 
@@ -437,6 +437,12 @@ export default function StudentDashboard() {
       return
     }
     
+    // Redirect to my applications page
+    if (itemId === 'applications') {
+      window.location.href = '/my-applications'
+      return
+    }
+    
     setActiveTab(itemId)
     // Auto-close sidebar on mobile after selection
     if (window.innerWidth < 1024) {
@@ -511,10 +517,12 @@ export default function StudentDashboard() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-4xl font-bold text-orange-600">{profileCompletion}%</div>
-                <div className="text-sm text-gray-600">Profile Complete</div>
-                <div className="text-xs text-green-600 mt-1">
-                  {profileCompletion === 100 ? '✅ Ready for Internships' : '⏳ Complete to unlock features'}
+                <div className="flex items-center space-x-2 text-orange-600">
+                  <Bell className="w-8 h-8" />
+                  <div>
+                    <div className="text-2xl font-bold">{unreadNotifications}</div>
+                    <div className="text-sm text-gray-600">New Notifications</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -586,18 +594,19 @@ export default function StudentDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <motion.div 
             whileHover={{ scale: 1.02 }}
-            className="bg-white rounded-lg p-6 border-l-4 border-blue-500 shadow-lg"
+            className="bg-white rounded-lg p-6 border-l-4 border-blue-500 shadow-lg cursor-pointer"
+            onClick={() => setActiveTab('notifications')}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Profile Status</p>
-                <p className="text-3xl font-bold text-blue-600">{profileCompletion}%</p>
+                <p className="text-sm font-medium text-gray-600">Recent Notifications</p>
+                <p className="text-3xl font-bold text-blue-600">{notifications.length}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {profileCompletion === 100 ? 'Complete' : 'In Progress'}
+                  {unreadNotifications} unread
                 </p>
               </div>
               <div className="p-3 bg-blue-100 rounded-full">
-                <User className="w-8 h-8 text-blue-600" />
+                <Bell className="w-8 h-8 text-blue-600" />
               </div>
             </div>
           </motion.div>
@@ -708,7 +717,7 @@ export default function StudentDashboard() {
                           Posted {new Date(internship.created_at).toLocaleDateString()}
                         </span>
                         <Link 
-                          href="/internships"
+                          href={`/internships/${internship.id}`}
                           className="block mt-2 bg-orange-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-orange-700 transition-colors"
                         >
                           Apply Now
@@ -880,6 +889,16 @@ export default function StudentDashboard() {
     <div className="space-y-6">
       {/* Profile Header */}
       <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6 text-white">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">My Profile</h2>
+          <button
+            onClick={() => setActiveTab('profile-steps')}
+            className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg text-sm transition-colors flex items-center space-x-2"
+          >
+            <Edit3 className="w-4 h-4" />
+            <span>Edit Profile</span>
+          </button>
+        </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="relative">
@@ -1426,6 +1445,146 @@ export default function StudentDashboard() {
     </div>
   )
 
+  const renderHelp = () => (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-green-600 to-green-800 rounded-lg p-6 text-white">
+        <div className="flex items-center space-x-4">
+          <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+            <HelpCircle className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Help & Support</h1>
+            <p className="text-gray-100">Get assistance and find answers to your questions</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Quick Help */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Help</h3>
+          <div className="space-y-3">
+            <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center space-x-3">
+                <FileText className="w-5 h-5 text-blue-500" />
+                <div>
+                  <p className="font-medium text-gray-900">User Guide</p>
+                  <p className="text-sm text-gray-500">Complete guide for using the portal</p>
+                </div>
+              </div>
+            </button>
+            
+            <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center space-x-3">
+                <HelpCircle className="w-5 h-5 text-green-500" />
+                <div>
+                  <p className="font-medium text-gray-900">FAQ</p>
+                  <p className="text-sm text-gray-500">Frequently asked questions</p>
+                </div>
+              </div>
+            </button>
+            
+            <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center space-x-3">
+                <PlayCircle className="w-5 h-5 text-purple-500" />
+                <div>
+                  <p className="font-medium text-gray-900">Video Tutorials</p>
+                  <p className="text-sm text-gray-500">Step-by-step video guides</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Contact Support */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Support</h3>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+              <Phone className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="font-medium text-gray-900">Helpline</p>
+                <p className="text-sm text-blue-600">1800-XXX-XXXX (Toll Free)</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+              <Mail className="w-5 h-5 text-green-600" />
+              <div>
+                <p className="font-medium text-gray-900">Email Support</p>
+                <p className="text-sm text-green-600">sanketg367@gmail.com</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
+              <MessageSquare className="w-5 h-5 text-purple-600" />
+              <div>
+                <p className="font-medium text-gray-900">Live Chat</p>
+                <p className="text-sm text-purple-600">Available 24/7</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Technical Support */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Technical Support</h3>
+          <div className="space-y-3">
+            <div className="p-3 border border-gray-200 rounded-lg">
+              <p className="font-medium text-gray-900 mb-1">System Requirements</p>
+              <p className="text-sm text-gray-500">Check browser compatibility and system requirements</p>
+            </div>
+            
+            <div className="p-3 border border-gray-200 rounded-lg">
+              <p className="font-medium text-gray-900 mb-1">Troubleshooting</p>
+              <p className="text-sm text-gray-500">Common issues and their solutions</p>
+            </div>
+            
+            <div className="p-3 border border-gray-200 rounded-lg">
+              <p className="font-medium text-gray-900 mb-1">Report a Bug</p>
+              <p className="text-sm text-gray-500">Help us improve by reporting issues</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Government Resources */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Government Resources</h3>
+          <div className="space-y-3">
+            <a href="https://www.india.gov.in" target="_blank" rel="noopener noreferrer" className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center space-x-3">
+                <Globe className="w-5 h-5 text-blue-500" />
+                <div>
+                  <p className="font-medium text-gray-900">India.gov.in</p>
+                  <p className="text-sm text-gray-500">Official government portal</p>
+                </div>
+              </div>
+            </a>
+            
+            <a href="https://digitalindia.gov.in" target="_blank" rel="noopener noreferrer" className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center space-x-3">
+                <Zap className="w-5 h-5 text-orange-500" />
+                <div>
+                  <p className="font-medium text-gray-900">Digital India</p>
+                  <p className="text-sm text-gray-500">Digital transformation initiative</p>
+                </div>
+              </div>
+            </a>
+            
+            <a href="https://www.mygov.in" target="_blank" rel="noopener noreferrer" className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center space-x-3">
+                <Users className="w-5 h-5 text-green-500" />
+                <div>
+                  <p className="font-medium text-gray-900">MyGov.in</p>
+                  <p className="text-sm text-gray-500">Citizen engagement platform</p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   if (loading) {
     return (
@@ -1546,24 +1705,6 @@ export default function StudentDashboard() {
                     <p className="text-sm text-gray-600 mb-1">Student ID: STU-{user?.id?.slice(-6) || '123456'}</p>
                     <p className="text-xs text-gray-500 mb-3">{user?.email}</p>
                     
-                    {/* Profile Completion */}
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Profile Complete</span>
-                        <span className="text-sm font-bold text-blue-600">{getProfileCompletion()}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${getProfileCompletion()}%` }}
-                        ></div>
-                      </div>
-                      {userData?.profile_step && (
-                        <div className="text-xs text-gray-500 mt-1 text-center">
-                          Step {userData.profile_step} of 6 completed
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
 
@@ -1623,6 +1764,53 @@ export default function StudentDashboard() {
                   ))}
                 </nav>
                 
+                {/* Settings and Help Buttons */}
+                <div className="p-4 border-t border-gray-200 space-y-2">
+                  <button
+                    onClick={() => setActiveTab('settings')}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
+                      activeTab === 'settings'
+                        ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-gray-50 hover:shadow-md'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${
+                      activeTab === 'settings' 
+                        ? 'bg-white bg-opacity-20' 
+                        : 'bg-gray-100'
+                    }`}>
+                      <Settings className={`w-5 h-5 ${
+                        activeTab === 'settings' 
+                          ? 'text-white' 
+                          : 'text-gray-600'
+                      }`} />
+                    </div>
+                    <span className="font-medium">Settings</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('help')}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
+                      activeTab === 'help'
+                        ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-gray-50 hover:shadow-md'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${
+                      activeTab === 'help' 
+                        ? 'bg-white bg-opacity-20' 
+                        : 'bg-gray-100'
+                    }`}>
+                      <HelpCircle className={`w-5 h-5 ${
+                        activeTab === 'help' 
+                          ? 'text-white' 
+                          : 'text-green-600'
+                      }`} />
+                    </div>
+                    <span className="font-medium">Help & Support</span>
+                  </button>
+                </div>
+                
                 {/* Quick Stats in Sidebar */}
                 <div className="p-4 bg-gray-50 border-t border-gray-200">
                   <div className="grid grid-cols-2 gap-3 text-center">
@@ -1665,12 +1853,14 @@ export default function StudentDashboard() {
                 {activeTab === 'profile-steps' && <MultiStepProfile />}
                 {activeTab === 'documents' && <DocumentVerificationNew />}
                 {activeTab === 'resume' && <ResumeBuilder />}
+                {activeTab === 'resume-verifier' && <RealResumeVerifier />}
                 {activeTab === 'skills' && <SkillsAssessment />}
                 {activeTab === 'internships' && <InternshipSearch />}
                 {activeTab === 'applications' && renderApplications()}
                 {activeTab === 'grievance' && <GrievanceManagement />}
                 {activeTab === 'notifications' && renderNotifications()}
                 {activeTab === 'settings' && renderSettings()}
+                {activeTab === 'help' && renderHelp()}
               </motion.div>
             </AnimatePresence>
           </div>

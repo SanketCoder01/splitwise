@@ -110,77 +110,188 @@ def extract_text_from_docx(file_content: bytes) -> str:
 def extract_personal_info(text: str) -> Dict[str, Any]:
     """Extract personal information from resume text"""
     personal_info = {}
-    
+
     # Extract email
     email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
     emails = re.findall(email_pattern, text)
     if emails:
         personal_info["email"] = emails[0]
-    
-    # Extract phone number
-    phone_pattern = r'(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
+
+    # Extract phone number (improved pattern)
+    phone_pattern = r'(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,5}'
     phones = re.findall(phone_pattern, text)
     if phones:
-        personal_info["phone"] = ''.join(phones[0]) if isinstance(phones[0], tuple) else phones[0]
-    
+        # Clean up phone number
+        phone = ''.join(phones[0]) if isinstance(phones[0], tuple) else phones[0]
+        phone = re.sub(r'[^\d+\-\s\(\)]', '', phone)  # Remove unwanted characters
+        personal_info["phone"] = phone.strip()
+
+    # Extract LinkedIn profile
+    linkedin_pattern = r'(?:linkedin\.com/in/|linkedin\.com/profile/view\?id=|linkedin\.com/pub/)([a-zA-Z0-9_-]+)'
+    linkedin_match = re.search(linkedin_pattern, text, re.IGNORECASE)
+    if linkedin_match:
+        personal_info["linkedin"] = f"linkedin.com/in/{linkedin_match.group(1)}"
+    else:
+        # Look for LinkedIn URL without the specific pattern
+        linkedin_url_pattern = r'linkedin\.com/[^\s\n]+'
+        linkedin_url_match = re.search(linkedin_url_pattern, text, re.IGNORECASE)
+        if linkedin_url_match:
+            personal_info["linkedin"] = linkedin_url_match.group(0).strip()
+
+    # Extract GitHub profile
+    github_pattern = r'(?:github\.com/)([a-zA-Z0-9_-]+)'
+    github_match = re.search(github_pattern, text, re.IGNORECASE)
+    if github_match:
+        personal_info["github"] = f"github.com/{github_match.group(1)}"
+    else:
+        # Look for GitHub URL
+        github_url_pattern = r'github\.com/[^\s\n]+'
+        github_url_match = re.search(github_url_pattern, text, re.IGNORECASE)
+        if github_url_match:
+            personal_info["github"] = github_url_match.group(0).strip()
+
     # Extract name (first few words before email or phone)
     lines = text.split('\n')
-    for i, line in enumerate(lines[:5]):  # Check first 5 lines
+    for i, line in enumerate(lines[:10]):  # Check first 10 lines
         line = line.strip()
-        if line and not any(keyword in line.lower() for keyword in ['resume', 'cv', 'curriculum']):
-            if len(line.split()) <= 4 and not re.search(r'[@\d]', line):
-                personal_info["name"] = line
-                break
-    
+        if line and not any(keyword in line.lower() for keyword in ['resume', 'cv', 'curriculum', 'contact', 'personal']):
+            # Skip lines that are clearly not names
+            if not re.search(r'[@\d]', line) and len(line.split()) <= 5 and len(line) > 2:
+                # Check if it looks like a name (contains letters, possibly with spaces)
+                if re.match(r'^[A-Za-z\s\-\.\']+$', line.strip()):
+                    personal_info["name"] = line.strip()
+                    break
+
     # Extract location (look for city, state patterns)
     location_pattern = r'([A-Z][a-z]+,\s*[A-Z][a-z]+)|([A-Z][a-z]+\s*,\s*[A-Z]{2})'
     locations = re.findall(location_pattern, text)
     if locations:
         personal_info["location"] = locations[0][0] or locations[0][1]
-    
+
     return personal_info
 
 def extract_experience(text: str) -> List[Dict[str, Any]]:
     """Extract work experience from resume text"""
     experience = []
-    
-    # Look for experience section
-    experience_section = re.search(r'(experience|work history|employment)(.*?)(?=education|skills|projects|$)', 
-                                 text, re.IGNORECASE | re.DOTALL)
-    
-    if experience_section:
-        exp_text = experience_section.group(2)
-        
-        # Split by common delimiters
-        entries = re.split(r'\n\s*\n|\n(?=[A-Z][a-z]+ \d{4})', exp_text)
-        
+
+    # Look for experience section with multiple patterns
+    experience_patterns = [
+        r'(experience|work history|employment|professional experience)(.*?)(?=education|skills|projects|certifications|$)',
+        r'(work experience|career history)(.*?)(?=education|skills|projects|$)',
+        r'(professional background|work background)(.*?)(?=education|skills|$)',
+    ]
+
+    exp_text = ""
+    for pattern in experience_patterns:
+        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+        if match:
+            exp_text = match.group(2)
+            break
+
+    if not exp_text:
+        # Fallback: look for job titles and companies throughout the document
+        job_title_pattern = r'(software engineer|developer|manager|analyst|consultant|architect|specialist|lead|senior|junior|intern)'
+        if re.search(job_title_pattern, text, re.IGNORECASE):
+            exp_text = text
+
+    if exp_text:
+        # Split by common delimiters and date patterns
+        entries = re.split(r'\n\s*\n|\n(?=\d{1,2}/\d{4}|\d{4}\s*[-–]\s*\d{4}|\d{4}\s*[-–]\s*present|\d{4}\s*[-–]\s*current)', exp_text)
+
         for entry in entries:
             entry = entry.strip()
-            if len(entry) > 50:  # Filter out short entries
+            if len(entry) > 30:  # Filter out very short entries
                 exp_dict = {}
-                
-                # Extract company and position
-                lines = entry.split('\n')
-                for line in lines[:3]:  # Check first 3 lines
-                    if any(keyword in line.lower() for keyword in ['software', 'engineer', 'developer', 'manager', 'analyst']):
-                        exp_dict["position"] = line.strip()
-                    elif not exp_dict.get("company") and len(line.split()) <= 5:
-                        exp_dict["company"] = line.strip()
-                
-                # Extract duration
-                date_pattern = r'(\d{4})\s*[-–]\s*(\d{4}|present|current)'
-                dates = re.findall(date_pattern, entry, re.IGNORECASE)
-                if dates:
-                    start_year, end_year = dates[0]
-                    exp_dict["duration"] = f"{start_year} - {end_year}"
-                
-                # Extract description
-                exp_dict["description"] = entry[:200] + "..." if len(entry) > 200 else entry
-                
-                if exp_dict:
+
+                # Extract position/title (look for common job titles)
+                position_pattern = r'(software engineer|senior developer|full stack developer|frontend developer|backend developer|devops engineer|data scientist|product manager|project manager|team lead|technical lead|engineering manager|software architect|system analyst|business analyst|qa engineer|automation engineer|database administrator|cloud engineer|security engineer)'
+                position_match = re.search(position_pattern, entry, re.IGNORECASE)
+                if position_match:
+                    exp_dict["position"] = position_match.group(0).title()
+                else:
+                    # Look for capitalized words that might be job titles
+                    lines = entry.split('\n')
+                    for line in lines[:2]:
+                        line = line.strip()
+                        if len(line) > 3 and len(line) < 50 and not re.search(r'[@\d]', line):
+                            # Check if it looks like a job title
+                            words = line.split()
+                            if len(words) <= 6 and any(word[0].isupper() for word in words):
+                                exp_dict["position"] = line
+                                break
+
+                # Extract company (look for company patterns)
+                company_pattern = r'(pvt\.?\s*ltd\.?|ltd\.?|inc\.?|corp\.?|corporation|llc|technologies|systems|solutions|software|services|consulting|labs)'
+                company_match = re.search(r'(.{2,30}?)\s*(?:' + company_pattern + r'|•|\|)', entry, re.IGNORECASE)
+                if company_match:
+                    company = company_match.group(1).strip()
+                    if len(company) > 2 and len(company) < 30:
+                        exp_dict["company"] = company.title()
+                else:
+                    # Look for company names in parentheses or after "at"
+                    company_patterns = [
+                        r'at\s+([A-Za-z\s&]+?)(?:\s*\(|\s*\d|\s*$)',
+                        r'\(([A-Za-z\s&]+?)\)',
+                        r'for\s+([A-Za-z\s&]+?)(?:\s*\(|\s*\d|\s*$)',
+                    ]
+                    for pattern in company_patterns:
+                        match = re.search(pattern, entry, re.IGNORECASE)
+                        if match:
+                            company = match.group(1).strip()
+                            if len(company) > 2 and len(company) < 30:
+                                exp_dict["company"] = company.title()
+                                break
+
+                # Extract duration with multiple patterns
+                duration_patterns = [
+                    r'(\d{1,2}/\d{4})\s*[-–]\s*(\d{1,2}/\d{4}|present|current)',
+                    r'(\d{4})\s*[-–]\s*(\d{4}|present|current)',
+                    r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{4})\s*[-–]\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}|present|current)',
+                ]
+
+                for pattern in duration_patterns:
+                    dates = re.findall(pattern, entry, re.IGNORECASE)
+                    if dates:
+                        if len(dates[0]) == 2:  # Month/Year format
+                            start, end = dates[0]
+                            exp_dict["duration"] = f"{start} - {end}"
+                        else:  # Year format
+                            start, end = dates[0]
+                            exp_dict["duration"] = f"{start} - {end}"
+                        break
+
+                # Extract description (everything after position and company)
+                if exp_dict.get("position") or exp_dict.get("company"):
+                    # Remove position and company from description
+                    description = entry
+                    if exp_dict.get("position"):
+                        description = re.sub(re.escape(exp_dict["position"]), '', description, flags=re.IGNORECASE)
+                    if exp_dict.get("company"):
+                        description = re.sub(re.escape(exp_dict["company"]), '', description, flags=re.IGNORECASE)
+
+                    # Remove duration
+                    if exp_dict.get("duration"):
+                        description = re.sub(re.escape(exp_dict["duration"]), '', description, flags=re.IGNORECASE)
+
+                    # Clean up description
+                    description = re.sub(r'\s+', ' ', description).strip()
+                    if description and len(description) > 10:
+                        exp_dict["description"] = description[:300] + "..." if len(description) > 300 else description
+
+                # Only add if we have at least position or company
+                if exp_dict.get("position") or exp_dict.get("company"):
                     experience.append(exp_dict)
-    
-    return experience
+
+    # Remove duplicates and limit to reasonable number
+    unique_experience = []
+    seen = set()
+    for exp in experience[:10]:  # Limit to 10 experiences
+        key = (exp.get("position", ""), exp.get("company", ""))
+        if key not in seen:
+            unique_experience.append(exp)
+            seen.add(key)
+
+    return unique_experience
 
 def extract_education(text: str) -> List[Dict[str, Any]]:
     """Extract education information from resume text"""
@@ -270,45 +381,212 @@ def extract_skills(text: str) -> List[Dict[str, Any]]:
 def extract_certificates(text: str) -> List[Dict[str, Any]]:
     """Extract certificates from resume text"""
     certificates = []
-    
-    # Look for certificates section
-    cert_section = re.search(r'(certificate|certification|credential)(.*?)(?=experience|education|skills|$)', 
-                           text, re.IGNORECASE | re.DOTALL)
-    
-    if cert_section:
-        cert_text = cert_section.group(2)
-        
-        # Common certification patterns
+
+    # Look for certificates section with multiple patterns
+    cert_patterns = [
+        r'(certificate|certification|credential|certifications)(.*?)(?=experience|education|skills|projects|$)',
+        r'(professional certifications|technical certifications)(.*?)(?=experience|education|$)',
+        r'(licenses|qualifications)(.*?)(?=experience|education|skills|$)',
+    ]
+
+    cert_text = ""
+    for pattern in cert_patterns:
+        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+        if match:
+            cert_text = match.group(2)
+            break
+
+    if not cert_text:
+        # Fallback: search entire document for certification keywords
+        cert_keywords = ['aws certified', 'microsoft certified', 'google cloud', 'cisco', 'oracle', 'pmp', 'scrum master']
+        if any(keyword in text.lower() for keyword in cert_keywords):
+            cert_text = text
+
+    if cert_text:
+        # Common certification patterns with certificate IDs
         cert_patterns = [
-            r'(aws|azure|google cloud|gcp)\s+(certified|associate|professional)',
-            r'(cisco|microsoft|oracle|ibm)\s+certified',
-            r'(pmp|scrum master|agile|six sigma)',
-            r'certified\s+(.+?)(?=\n|$)'
+            # AWS certifications
+            r'(aws certified (cloud architect|developer|sysops administrator|solutions architect|devops engineer|data analytics|machine learning|security))',
+            r'(aws-[a-zA-Z0-9-]+)',
+
+            # Microsoft certifications
+            r'(microsoft certified:? (azure|office|windows|sql|visual studio|dynamics))',
+            r'(mcsa|mcsd|mcse|mcp|mos)-?[a-zA-Z0-9-]*',
+
+            # Google Cloud certifications
+            r'(google cloud (professional cloud architect|professional data engineer|professional cloud developer|associate cloud engineer))',
+            r'(gcp-[a-zA-Z0-9-]+)',
+
+            # Cisco certifications
+            r'(cisco certified (network associate|network professional|design associate|security professional))',
+            r'(ccna|ccnp|ccie|ccda|ccdp)-?[a-zA-Z0-9-]*',
+
+            # Other common certifications
+            r'(pmp|scrum master|csm|cspo|safe|itil|cissp|cisa|cism|ceh|comp tia|oracle certified)',
+            r'(certified (kubernetes administrator|docker|jenkins|terraform|ansible))',
+
+            # Generic certificate with ID pattern
+            r'([A-Z]{2,}-[A-Z0-9-]+|[A-Z]{3,}\d+|[A-Z]{2,}\s*\d{4,})',
         ]
-        
+
+        processed_certs = set()
+
         for pattern in cert_patterns:
             matches = re.finditer(pattern, cert_text, re.IGNORECASE)
             for match in matches:
+                cert_name = match.group(0).strip()
+
+                # Skip if already processed
+                if cert_name.lower() in processed_certs:
+                    continue
+                processed_certs.add(cert_name.lower())
+
                 cert_dict = {
-                    "name": match.group(0).strip(),
-                    "issuer": "Unknown",
-                    "date": "Unknown"
+                    "name": cert_name.title(),
+                    "issuer": extract_certificate_issuer(cert_name),
+                    "certificateId": extract_certificate_id(cert_text, match.start(), match.end()),
+                    "date": extract_certificate_date(cert_text, match.start(), match.end())
                 }
-                
-                # Try to extract issuer and date from context
-                context_start = max(0, match.start() - 50)
-                context_end = min(len(cert_text), match.end() + 50)
-                context = cert_text[context_start:context_end]
-                
-                # Extract year
-                year_pattern = r'20\d{2}'
-                years = re.findall(year_pattern, context)
-                if years:
-                    cert_dict["date"] = years[0]
-                
+
                 certificates.append(cert_dict)
-    
-    return certificates
+
+        # Also look for certificate entries in list format
+        lines = cert_text.split('\n')
+        for line in lines:
+            line = line.strip()
+            if len(line) > 10 and len(line) < 100:
+                # Check if line contains certificate-like keywords
+                if any(keyword in line.lower() for keyword in ['certified', 'certificate', 'certification', 'license', 'diploma']):
+                    # Skip if already extracted
+                    if not any(cert['name'].lower() in line.lower() for cert in certificates):
+                        cert_dict = {
+                            "name": line,
+                            "issuer": extract_certificate_issuer(line),
+                            "certificateId": extract_certificate_id_from_line(line),
+                            "date": extract_certificate_date_from_line(line)
+                        }
+                        certificates.append(cert_dict)
+
+    # Remove duplicates and limit
+    unique_certificates = []
+    seen = set()
+    for cert in certificates[:15]:  # Limit to 15 certificates
+        key = cert['name'].lower()
+        if key not in seen:
+            unique_certificates.append(cert)
+            seen.add(key)
+
+    return unique_certificates
+
+def extract_certificate_issuer(cert_name: str) -> str:
+    """Extract issuer from certificate name"""
+    cert_lower = cert_name.lower()
+
+    issuer_map = {
+        'aws': 'Amazon Web Services',
+        'microsoft': 'Microsoft',
+        'google': 'Google',
+        'cisco': 'Cisco',
+        'oracle': 'Oracle',
+        'pmp': 'Project Management Institute',
+        'scrum': 'Scrum Alliance',
+        'itil': 'AXELOS',
+        'cissp': 'ISC²',
+        'cisa': 'ISACA',
+        'cism': 'ISACA',
+        'ceh': 'EC-Council',
+        'comp tia': 'CompTIA',
+    }
+
+    for keyword, issuer in issuer_map.items():
+        if keyword in cert_lower:
+            return issuer
+
+    # Try to extract from common patterns
+    if 'certified' in cert_lower:
+        words = cert_name.split()
+        for i, word in enumerate(words):
+            if word.lower() == 'certified' and i > 0:
+                return words[i-1].title()
+
+    return 'Unknown'
+
+def extract_certificate_id(text: str, start: int, end: int) -> str:
+    """Extract certificate ID from context around match"""
+    context_start = max(0, start - 100)
+    context_end = min(len(text), end + 100)
+    context = text[context_start:context_end]
+
+    # Look for ID patterns in context
+    id_patterns = [
+        r'([A-Z]{2,}-[A-Z0-9-]+)',
+        r'([A-Z]{3,}\d+)',
+        r'(ID|Certificate|Cert|License):\s*([A-Z0-9-]+)',
+        r'#([A-Z0-9-]+)',
+    ]
+
+    for pattern in id_patterns:
+        matches = re.findall(pattern, context, re.IGNORECASE)
+        if matches:
+            # Return the first match (clean it up)
+            match = matches[0]
+            if isinstance(match, tuple):
+                return match[-1]  # Take the captured group
+            return match
+
+    return ""
+
+def extract_certificate_id_from_line(line: str) -> str:
+    """Extract certificate ID from a single line"""
+    id_patterns = [
+        r'([A-Z]{2,}-[A-Z0-9-]+)',
+        r'([A-Z]{3,}\d+)',
+        r'#([A-Z0-9-]+)',
+        r'(ID|Certificate|Cert):\s*([A-Z0-9-]+)',
+    ]
+
+    for pattern in id_patterns:
+        match = re.search(pattern, line, re.IGNORECASE)
+        if match:
+            groups = match.groups()
+            return groups[-1] if groups[-1] else groups[0]
+
+    return ""
+
+def extract_certificate_date(text: str, start: int, end: int) -> str:
+    """Extract certificate date from context"""
+    context_start = max(0, start - 50)
+    context_end = min(len(text), end + 50)
+    context = text[context_start:context_end]
+
+    # Look for date patterns
+    date_patterns = [
+        r'20\d{2}',
+        r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+20\d{2}',
+        r'\d{1,2}/\d{4}',
+    ]
+
+    for pattern in date_patterns:
+        match = re.search(pattern, context, re.IGNORECASE)
+        if match:
+            return match.group(0)
+
+    return ""
+
+def extract_certificate_date_from_line(line: str) -> str:
+    """Extract certificate date from a single line"""
+    date_patterns = [
+        r'20\d{2}',
+        r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+20\d{2}',
+        r'\d{1,2}/\d{4}',
+    ]
+
+    for pattern in date_patterns:
+        match = re.search(pattern, line, re.IGNORECASE)
+        if match:
+            return match.group(0)
+
+    return ""
 
 @app.get("/")
 async def root():

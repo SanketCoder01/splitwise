@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
+import Link from 'next/link'
 // import { useAuth } from '../../contexts/AuthContext' // COMMENTED OUT FOR BYPASS
 
 interface Internship {
@@ -488,14 +489,15 @@ export default function InternshipsPage() {
                   </div>
 
                   <div className="mt-4 lg:mt-0 lg:ml-6 flex flex-col space-y-3">
-                    <motion.button
-                      onClick={() => handleApply(internship.id)}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Apply Now
-                    </motion.button>
+                    <Link href={`/internships/${internship.id}`}>
+                      <motion.button
+                        className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 w-full"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        Check Availability
+                      </motion.button>
+                    </Link>
                     <button
                       onClick={() => setExpandedInternship(expandedInternship === internship.id ? null : internship.id)}
                       className="flex items-center justify-center space-x-1 text-gray-600 hover:text-gray-800 transition-colors duration-200"

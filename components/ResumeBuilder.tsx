@@ -4,31 +4,70 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   FileText, Download, Eye, Save, Plus, Trash2, CheckCircle, 
-  AlertCircle, Brain, Zap, Target, Award, Edit3
+  AlertCircle, Brain, Zap, Target, Award, Edit3, ArrowRight, ArrowLeft,
+  User, Mail, Phone, MapPin, Briefcase, GraduationCap
 } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
+import Image from 'next/image'
 
 interface ResumeSection {
-  id: string
-  type: 'personal' | 'education' | 'experience' | 'skills' | 'projects' | 'achievements'
-  data: any
+  id: string;
+  type: 'personal' | 'education' | 'experience' | 'skills' | 'projects' | 'achievements';
+  data: any;
 }
 
 interface AIFeedback {
-  score: number
-  suggestions: string[]
-  keywords: string[]
-  grammar_issues: string[]
+  score: number;
+  suggestions: string[];
+  keywords: string[];
+  grammar_issues: string[];
+}
+
+interface Experience {
+  id: string;
+  title: string;
+  company: string;
+  duration: string;
+  description: string;
+}
+
+interface ResumeData {
+  personal: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    summary: string;
+  };
+  education: any[];
+  experience: Experience[];
+  skills: string[];
+  projects: any[];
+  achievements: any[];
 }
 
 export default function ResumeBuilder() {
-  const { user } = useAuth()
-  const [sections, setSections] = useState<ResumeSection[]>([])
-  const [activeSection, setActiveSection] = useState('personal')
-  const [aiFeedback, setAiFeedback] = useState<AIFeedback | null>(null)
-  const [analyzing, setAnalyzing] = useState(false)
-  const [selectedTemplate, setSelectedTemplate] = useState('modern')
+  const [currentStep, setCurrentStep] = useState<'template' | 'form' | 'preview'>('template');
+  const [sections, setSections] = useState<ResumeSection[]>([]);
+  const [activeSection, setActiveSection] = useState('personal');
+  const [aiFeedback, setAiFeedback] = useState<AIFeedback | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [templateCategory, setTemplateCategory] = useState('all');
+  const [resumeData, setResumeData] = useState<ResumeData>({
+    personal: {
+      fullName: '',
+      email: '',
+      phone: '',
+      address: '',
+      summary: '',
+    },
+    education: [],
+    experience: [],
+    skills: [],
+    projects: [],
+    achievements: [],
+  });
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const sectionTypes = [
     { id: 'personal', label: 'Personal Info', icon: FileText, required: true },
@@ -40,11 +79,270 @@ export default function ResumeBuilder() {
   ]
 
   const templates = [
-    { id: 'modern', name: 'Modern', description: 'Clean and contemporary design' },
-    { id: 'classic', name: 'Classic', description: 'Traditional professional format' },
-    { id: 'creative', name: 'Creative', description: 'Unique layout for creative roles' },
-    { id: 'minimal', name: 'Minimal', description: 'Simple and elegant design' }
+    // Professional Templates
+    { 
+      id: 'modern', 
+      name: 'Modern Professional', 
+      description: 'Clean contemporary design with blue accents', 
+      category: 'professional', 
+      color: 'blue',
+      image: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/modern-preview.jpg'
+    },
+    { 
+      id: 'classic', 
+      name: 'Classic Executive', 
+      description: 'Traditional professional format', 
+      category: 'professional', 
+      color: 'gray',
+      image: 'https://images.unsplash.com/photo-1586281380117-5a60ae2050cc?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/classic-preview.jpg'
+    },
+    { 
+      id: 'corporate', 
+      name: 'Corporate Elite', 
+      description: 'Business-focused layout with navy theme', 
+      category: 'professional', 
+      color: 'navy',
+      image: 'https://images.unsplash.com/photo-1586281380614-67ca8b3f8f25?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/corporate-preview.jpg'
+    },
+    { 
+      id: 'executive', 
+      name: 'Executive Summary', 
+      description: 'Senior-level professional template', 
+      category: 'professional', 
+      color: 'black',
+      image: 'https://images.unsplash.com/photo-1586281380923-93d9b4a79094?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/executive-preview.jpg'
+    },
+    
+    // Creative Templates
+    { 
+      id: 'creative', 
+      name: 'Creative Designer', 
+      description: 'Unique layout for creative roles', 
+      category: 'creative', 
+      color: 'purple',
+      image: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/creative-preview.jpg'
+    },
+    { 
+      id: 'artistic', 
+      name: 'Artistic Vision', 
+      description: 'Bold and expressive design', 
+      category: 'creative', 
+      color: 'pink',
+      image: 'https://images.unsplash.com/photo-1611224923642-308cefccbf6a?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/artistic-preview.jpg'
+    },
+    { 
+      id: 'portfolio', 
+      name: 'Portfolio Showcase', 
+      description: 'Project-focused layout', 
+      category: 'creative', 
+      color: 'orange',
+      image: 'https://images.unsplash.com/photo-1611224923716-c7ad5ac9d5c5?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/portfolio-preview.jpg'
+    },
+    
+    // Technical Templates
+    { 
+      id: 'developer', 
+      name: 'Software Developer', 
+      description: 'Code-focused layout with syntax highlighting', 
+      category: 'technical', 
+      color: 'blue',
+      image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/developer-preview.jpg'
+    },
+    { 
+      id: 'engineer', 
+      name: 'Engineering Pro', 
+      description: 'Technical skills emphasis', 
+      category: 'technical', 
+      color: 'gray',
+      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/engineer-preview.jpg'
+    },
+    { 
+      id: 'data-scientist', 
+      name: 'Data Scientist', 
+      description: 'Analytics-focused design with charts', 
+      category: 'technical', 
+      color: 'green',
+      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/data-scientist-preview.jpg'
+    },
+    
+    // Academic Templates
+    { 
+      id: 'academic', 
+      name: 'Academic Scholar', 
+      description: 'Research-focused layout', 
+      category: 'academic', 
+      color: 'blue',
+      image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/academic-preview.jpg'
+    },
+    { 
+      id: 'researcher', 
+      name: 'Research Scientist', 
+      description: 'Publication emphasis', 
+      category: 'academic', 
+      color: 'teal',
+      image: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/researcher-preview.jpg'
+    },
+    
+    // Minimal Templates
+    { 
+      id: 'minimal', 
+      name: 'Minimal Clean', 
+      description: 'Simple and elegant design', 
+      category: 'minimal', 
+      color: 'gray',
+      image: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/minimal-preview.jpg'
+    },
+    { 
+      id: 'simple', 
+      name: 'Simple Professional', 
+      description: 'Clean and straightforward', 
+      category: 'minimal', 
+      color: 'blue',
+      image: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=300&h=400&fit=crop&crop=top',
+      preview: '/templates/simple-preview.jpg'
+    }
   ]
+
+  const templateCategories = [
+    { id: 'all', label: 'All Templates', count: templates.length },
+    { id: 'professional', label: 'Professional', count: templates.filter(t => t.category === 'professional').length },
+    { id: 'creative', label: 'Creative', count: templates.filter(t => t.category === 'creative').length },
+    { id: 'technical', label: 'Technical', count: templates.filter(t => t.category === 'technical').length },
+    { id: 'academic', label: 'Academic', count: templates.filter(t => t.category === 'academic').length },
+    { id: 'minimal', label: 'Minimal', count: templates.filter(t => t.category === 'minimal').length }
+  ]
+
+  const filteredTemplates = templateCategory === 'all' 
+    ? templates 
+    : templates.filter(t => t.category === templateCategory)
+
+  const generateResumeWithAI = async () => {
+    setIsGenerating(true)
+    try {
+      // Simulate AI processing
+      await new Promise(resolve => setTimeout(resolve, 3000))
+      
+      // Mock AI feedback
+      setAiFeedback({
+        score: 85,
+        suggestions: [
+          'Add more quantifiable achievements in your experience section',
+          'Include relevant keywords for your target industry',
+          'Optimize your skills section for ATS compatibility'
+        ],
+        keywords: ['JavaScript', 'React', 'Node.js', 'Python', 'SQL'],
+        grammar_issues: ['Check capitalization in job titles', 'Use consistent tense throughout']
+      })
+    } catch (error) {
+      console.error('AI generation failed:', error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const downloadResume = (format: 'pdf' | 'image') => {
+    // Mock download functionality
+    const link = document.createElement('a')
+    link.href = '#'
+    link.download = `resume-${selectedTemplate}.${format}`
+    link.click()
+  }
+
+  const updateResumeData = (section: string, data: any) => {
+    setResumeData(prev => ({
+      ...prev,
+      [section]: data
+    }))
+  }
+
+  const renderTemplateSelection = () => (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Choose Your Resume Template</h1>
+        <p className="text-lg text-gray-600">Select from our collection of professional resume templates</p>
+      </div>
+
+      {/* Category Filter */}
+      <div className="flex flex-wrap justify-center gap-2">
+        {templateCategories.map((category) => (
+          <button
+            key={category.id}
+            onClick={() => setTemplateCategory(category.id)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              templateCategory === category.id
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {category.label} ({category.count})
+          </button>
+        ))}
+      </div>
+
+      {/* Template Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredTemplates.map((template) => (
+          <motion.div
+            key={template.id}
+            whileHover={{ scale: 1.05 }}
+            className={`cursor-pointer rounded-lg border-2 overflow-hidden transition-all ${
+              selectedTemplate === template.id
+                ? 'border-blue-500 shadow-lg'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={() => setSelectedTemplate(template.id)}
+          >
+            <div className="aspect-[3/4] relative">
+              <img
+                src={template.image}
+                alt={template.name}
+                className="w-full h-full object-cover"
+              />
+              {selectedTemplate === template.id && (
+                <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+                  <CheckCircle className="w-12 h-12 text-blue-600" />
+                </div>
+              )}
+            </div>
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-900 mb-1">{template.name}</h3>
+              <p className="text-sm text-gray-600 mb-2">{template.description}</p>
+              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium bg-${template.color}-100 text-${template.color}-800`}>
+                {template.category}
+              </span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Next Button */}
+      {selectedTemplate && (
+        <div className="text-center">
+          <button
+            onClick={() => setCurrentStep('form')}
+            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Continue with {templates.find(t => t.id === selectedTemplate)?.name}
+            <ArrowRight className="w-5 h-5 inline ml-2" />
+          </button>
+        </div>
+      )}
+    </div>
+  )
 
   useEffect(() => {
     initializeResume()
@@ -57,7 +355,7 @@ export default function ResumeBuilder() {
         type: 'personal',
         data: {
           name: '',
-          email: user?.email || '',
+          email: '',
           phone: '',
           location: '',
           linkedin: '',
@@ -437,6 +735,239 @@ export default function ResumeBuilder() {
           <span>Save Resume</span>
         </button>
       </div>
+    </div>
+  )
+
+  // Live Preview Component
+  const renderLivePreview = () => {
+    const selectedTemplateData = templates.find(t => t.id === selectedTemplate)
+    
+    return (
+      <div className="bg-white shadow-lg rounded-lg overflow-hidden" style={{ aspectRatio: '8.5/11' }}>
+        <div className="p-4 text-xs">
+          {/* Header */}
+          <div className={`text-center pb-3 mb-3 border-b-2 ${
+            selectedTemplateData?.color === 'blue' ? 'border-blue-500' :
+            selectedTemplateData?.color === 'gray' ? 'border-gray-500' :
+            'border-blue-500'
+          }`}>
+            <h1 className="text-lg font-bold text-gray-900 mb-1">
+              {resumeData.personal.fullName || 'Your Name'}
+            </h1>
+            <div className="flex justify-center items-center space-x-2 text-gray-600 text-xs">
+              {resumeData.personal.email && (
+                <span className="flex items-center">
+                  <Mail className="w-2 h-2 mr-1" />
+                  {resumeData.personal.email}
+                </span>
+              )}
+              {resumeData.personal.phone && (
+                <span className="flex items-center">
+                  <Phone className="w-2 h-2 mr-1" />
+                  {resumeData.personal.phone}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Summary */}
+          {resumeData.personal.summary && (
+            <div className="mb-3">
+              <h2 className="text-sm font-semibold mb-1 text-blue-600">Summary</h2>
+              <p className="text-gray-700 text-xs leading-tight">{resumeData.personal.summary}</p>
+            </div>
+          )}
+
+          {/* Experience */}
+          {resumeData.experience.length > 0 && (
+            <div className="mb-3">
+              <h2 className="text-sm font-semibold mb-1 text-blue-600">Experience</h2>
+              {resumeData.experience.slice(0, 2).map((exp, index) => (
+                <div key={index} className="mb-2">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 text-xs">{exp.title}</h3>
+                      <p className="text-gray-700 text-xs">{exp.company}</p>
+                    </div>
+                    <span className="text-gray-600 text-xs">{exp.duration}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Skills */}
+          {resumeData.skills.length > 0 && (
+            <div className="mb-3">
+              <h2 className="text-sm font-semibold mb-1 text-blue-600">Skills</h2>
+              <div className="flex flex-wrap gap-1">
+                {resumeData.skills.slice(0, 8).map((skill, index) => (
+                  <span key={index} className="px-1 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Main Render Function with Step Flow
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <AnimatePresence mode="wait">
+        {currentStep === 'template' && (
+          <motion.div
+            key="template"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="container mx-auto px-4 py-8"
+          >
+            {renderTemplateSelection()}
+          </motion.div>
+        )}
+
+        {currentStep === 'form' && (
+          <motion.div
+            key="form"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-screen"
+          >
+            {/* Form Section */}
+            <div className="lg:col-span-2 space-y-6 overflow-y-auto p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Build Your Resume</h1>
+                  <p className="text-gray-600">Fill in your information</p>
+                </div>
+                <button
+                  onClick={() => setCurrentStep('template')}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  <ArrowLeft className="w-4 h-4 inline mr-2" />
+                  Change Template
+                </button>
+              </div>
+
+              {/* Section Navigation */}
+              <div className="flex flex-wrap gap-2">
+                {sectionTypes.map((section) => (
+                  <button
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                      activeSection === section.id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <section.icon className="w-4 h-4" />
+                    <span>{section.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Form Content */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                {activeSection === 'personal' && renderPersonalInfo()}
+                {activeSection === 'education' && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Education</h3>
+                    <p className="text-gray-600">Add your educational background</p>
+                  </div>
+                )}
+                {activeSection === 'experience' && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Experience</h3>
+                    <p className="text-gray-600">Add your work experience</p>
+                  </div>
+                )}
+                {activeSection === 'skills' && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Skills</h3>
+                    <p className="text-gray-600">List your technical and soft skills</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-between">
+                <button
+                  onClick={() => setCurrentStep('template')}
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  Back to Templates
+                </button>
+                <button
+                  onClick={() => setCurrentStep('preview')}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Preview Resume
+                  <Eye className="w-4 h-4 inline ml-2" />
+                </button>
+              </div>
+            </div>
+
+            {/* Live Preview Section */}
+            <div className="bg-gray-50 p-6 overflow-y-auto">
+              <div className="sticky top-0 bg-gray-50 pb-4 mb-4 border-b">
+                <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
+                <p className="text-sm text-gray-600">See your resume update in real-time</p>
+              </div>
+              {renderLivePreview()}
+            </div>
+          </motion.div>
+        )}
+
+        {currentStep === 'preview' && (
+          <motion.div
+            key="preview"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="container mx-auto px-4 py-8"
+          >
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Resume is Ready!</h1>
+              <p className="text-lg text-gray-600">Review and download your professional resume</p>
+            </div>
+
+            <div className="flex justify-center mb-8">
+              <div className="max-w-2xl">
+                {renderLivePreview()}
+              </div>
+            </div>
+
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => setCurrentStep('form')}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                <ArrowLeft className="w-4 h-4 inline mr-2" />
+                Edit Resume
+              </button>
+              <button
+                onClick={() => {
+                  const link = document.createElement('a')
+                  link.href = '#'
+                  link.download = `resume-${selectedTemplate}.pdf`
+                  link.click()
+                }}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Download className="w-4 h-4 inline mr-2" />
+                Download PDF
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

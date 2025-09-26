@@ -2,140 +2,199 @@ import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
-// Mock resume extraction function - In production, you'd use actual PDF/DOCX parsing libraries
-async function extractResumeData(filePath: string, fileName: string): Promise<any> {
-  // Simulate processing time
-  await new Promise(resolve => setTimeout(resolve, 1000))
+// Use CommonJS requires to avoid ESM interop issues in the server runtime
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pdfParse = require('pdf-parse')
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const mammoth = require('mammoth')
 
-  // Mock extracted data based on common resume patterns
-  // In production, you'd use libraries like pdf-parse, mammoth, or AI services
-  const mockExtractedData = {
-    personalInfo: {
-      name: "Rahul Sharma",
-      email: "rahul.sharma@email.com",
-      phone: "+91 9876543210",
-      location: "Mumbai, Maharashtra, India",
-      linkedin: "linkedin.com/in/rahulsharma",
-      github: "github.com/rahulsharma"
-    },
-    professionalSummary: "Experienced Software Developer with 3+ years in full-stack development, specializing in React, Node.js, and cloud technologies. Proven track record of delivering scalable web applications and leading development teams.",
-    experience: [
-      {
-        id: uuidv4(),
-        company: "Tech Solutions Pvt Ltd",
-        position: "Senior Software Developer",
-        location: "Mumbai, India",
-        startDate: "2022-01",
-        endDate: "Present",
-        current: true,
-        description: "• Led development of 3 major web applications using React and Node.js\n• Implemented CI/CD pipelines reducing deployment time by 60%\n• Mentored junior developers and conducted code reviews\n• Collaborated with cross-functional teams to deliver projects on time"
-      },
-      {
-        id: uuidv4(),
-        company: "StartupXYZ",
-        position: "Full Stack Developer",
-        location: "Pune, India",
-        startDate: "2021-06",
-        endDate: "2021-12",
-        current: false,
-        description: "• Developed responsive web applications using React and Express.js\n• Integrated third-party APIs and payment gateways\n• Optimized database queries improving performance by 40%\n• Participated in agile development processes"
+// Local text extraction for PDF/DOCX
+async function extractTextLocally(fileBuffer: Buffer, fileName: string): Promise<string> {
+  const lower = fileName.toLowerCase()
+  if (lower.endsWith('.pdf')) {
+    const parsed = await pdfParse(fileBuffer)
+    return parsed.text || ''
+  }
+  if (lower.endsWith('.docx') || lower.endsWith('.doc')) {
+    const { value } = await mammoth.extractRawText({ buffer: fileBuffer })
+    return value || ''
+  }
+  throw new Error('Unsupported file format')
+}
+
+// Parsers
+function extractPersonalInfo(text: string) {
+  const emailMatch = text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/)
+  const phoneMatch = text.match(/(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,5}/)
+  const linkedinMatch = text.match(/linkedin\.com\/[A-Za-z0-9_\-\/]+/i)
+  const githubMatch = text.match(/github\.com\/[A-Za-z0-9_\-]+/i)
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+  let name = ''
+  for (const line of lines.slice(0, 10)) {
+    if (!/@|\d/.test(line) && /[A-Za-z]/.test(line) && line.split(' ').length <= 5) {
+      name = line
+      break
+    }
+  }
+  const locationMatch = text.match(/([A-Z][a-z]+,\s*[A-Z][a-z]+)|([A-Z][a-z]+\s*,\s*[A-Z]{2})/)
+  return {
+    name,
+    email: emailMatch?.[0] || '',
+    phone: phoneMatch?.[0] || '',
+    location: locationMatch ? (locationMatch[0]) : '',
+    linkedin: linkedinMatch?.[0] || '',
+    github: githubMatch?.[0] || ''
+  }
+}
+
+function extractExperience(text: string) {
+  const expSection = /(?:experience|work history|employment)([\s\S]*?)(?=education|skills|projects|certificates|$)/i.exec(text)
+  const experience: any[] = []
+  if (expSection) {
+    const entries = expSection[1].split(/\n\s*\n/)
+    for (const entry of entries) {
+      const lines = entry.split('\n').map(l => l.trim()).filter(Boolean)
+      if (lines.length === 0) continue
+      const position = lines.find(l => /developer|engineer|manager|analyst|designer|lead/i.test(l)) || lines[0]
+      const company = lines.find(l => /^[A-Za-z&.,\-\s]{2,}$/.test(l) && !/@|\d/.test(l)) || ''
+      const dateMatch = entry.match(/(\d{4})\s*[-–]\s*(\d{4}|present|current)/i)
+      const duration = dateMatch ? `${dateMatch[1]} - ${dateMatch[2]}` : ''
+      const description = entry.substring(0, 400)
+      if (position || company) {
+        experience.push({
+          id: uuidv4(),
+          company,
+          position,
+          location: '',
+          startDate: duration ? duration.split(' - ')[0] : '',
+          endDate: duration ? duration.split(' - ')[1] : '',
+          current: /present|current/i.test(duration),
+          description,
+          proofUploaded: false
+        })
       }
-    ],
-    education: [
-      {
+    }
+  }
+  return experience
+}
+
+function extractEducation(text: string) {
+  const eduSection = /(?:education|academic|qualification)([\s\S]*?)(?=experience|skills|projects|certificates|$)/i.exec(text)
+  const education: any[] = []
+  if (eduSection) {
+    const entries = eduSection[1].split(/\n\s*\n/)
+    for (const entry of entries) {
+      const degreeMatch = entry.match(/(bachelor|master|phd|b\.?tech|m\.?tech|b\.?sc|m\.?sc|mba|b\.e\.|m\.e\.)/i)
+      if (!degreeMatch) continue
+      const degree = degreeMatch[0]
+      const institution = (entry.split('\n').find(l => /university|college|institute|school/i.test(l)) || '').trim()
+      const yearMatch = entry.match(/(20\d{2}|19\d{2})/g)
+      const year = yearMatch ? yearMatch[yearMatch.length - 1] : ''
+      education.push({
         id: uuidv4(),
-        institution: "Indian Institute of Technology, Mumbai",
-        degree: "Bachelor of Technology",
-        field: "Computer Science and Engineering",
-        startDate: "2017-07",
-        endDate: "2021-05",
-        grade: "8.5 CGPA",
-        location: "Mumbai, India"
-      }
-    ],
-    skills: {
-      technical: [
-        "JavaScript", "TypeScript", "React", "Node.js", "Express.js", 
-        "MongoDB", "PostgreSQL", "AWS", "Docker", "Git", "Python", "Java"
-      ],
-      soft: [
-        "Leadership", "Team Management", "Problem Solving", 
-        "Communication", "Project Management", "Agile Methodologies"
-      ]
-    },
-    certifications: [
-      {
+        institution,
+        degree,
+        field: '',
+        startDate: '',
+        endDate: year,
+        grade: '',
+        location: ''
+      })
+    }
+  }
+  return education
+}
+
+function extractSkills(text: string) {
+  const lower = text.toLowerCase()
+  const tech: string[] = []
+  const possible = [
+    'javascript','typescript','react','node','python','java','c++','c#','php','ruby','go','rust','sql','html','css','docker','kubernetes','aws','azure','gcp','mongodb','mysql','postgresql','git','github','jira','postman'
+  ]
+  for (const s of possible) {
+    if (lower.includes(s)) tech.push(s.charAt(0).toUpperCase() + s.slice(1))
+  }
+  return { technical: Array.from(new Set(tech)), soft: [] as string[] }
+}
+
+function extractCertificates(text: string) {
+  const certs: any[] = []
+  const patterns = [
+    /(aws|azure|google cloud|gcp)\s+(certified|associate|professional)/ig,
+    /(microsoft certified|microsoft azure|microsoft office)/ig,
+    /(cisco certified|ccna|ccnp|ccie)/ig,
+    /(pmp|scrum master|six sigma|csm|cspo)/ig,
+    /(google cloud professional|associate cloud engineer)/ig
+  ]
+
+  for (const pattern of patterns) {
+    const matches = text.match(pattern) || []
+    for (const m of matches) {
+      // Extract certificate ID from context
+      const certId = extractCertificateId(text, m)
+      const issuer = extractCertificateIssuer(m)
+      const date = extractCertificateDate(text, m)
+
+      certs.push({
         id: uuidv4(),
-        name: "AWS Certified Solutions Architect",
-        issuer: "Amazon Web Services",
-        issueDate: "2023-03",
-        expiryDate: "2026-03",
-        credentialId: "AWS-SA-2023-001234"
-      },
-      {
-        id: uuidv4(),
-        name: "React Developer Certification",
-        issuer: "Meta",
-        issueDate: "2022-08",
-        expiryDate: null,
-        credentialId: "META-REACT-2022-5678"
-      }
-    ],
-    projects: [
-      {
-        id: uuidv4(),
-        name: "E-commerce Platform",
-        description: "Full-stack e-commerce application with React frontend and Node.js backend",
-        technologies: ["React", "Node.js", "MongoDB", "Stripe API"],
-        startDate: "2023-01",
-        endDate: "2023-06",
-        url: "https://github.com/rahulsharma/ecommerce-platform",
-        highlights: [
-          "Implemented secure payment processing",
-          "Built responsive design for mobile and desktop",
-          "Integrated inventory management system"
-        ]
-      },
-      {
-        id: uuidv4(),
-        name: "Task Management App",
-        description: "Collaborative task management application with real-time updates",
-        technologies: ["React", "Socket.io", "Express.js", "PostgreSQL"],
-        startDate: "2022-09",
-        endDate: "2022-12",
-        url: "https://github.com/rahulsharma/task-manager",
-        highlights: [
-          "Real-time collaboration features",
-          "Role-based access control",
-          "Advanced filtering and search"
-        ]
-      }
-    ],
-    awards: [
-      {
-        id: uuidv4(),
-        title: "Best Innovation Award",
-        issuer: "Tech Solutions Pvt Ltd",
-        date: "2023-12",
-        description: "Recognized for developing an innovative solution that improved system efficiency by 45%"
-      },
-      {
-        id: uuidv4(),
-        title: "Hackathon Winner",
-        issuer: "Mumbai Tech Fest 2022",
-        date: "2022-10",
-        description: "First place in 48-hour hackathon for developing a sustainable tech solution"
-      }
-    ],
-    languages: [
-      { name: "English", proficiency: "Native" },
-      { name: "Hindi", proficiency: "Native" },
-      { name: "Marathi", proficiency: "Fluent" }
-    ]
+        name: m,
+        issuer,
+        certificateId: certId,
+        issueDate: date,
+        verificationStatus: 'pending',
+        verified: false
+      })
+    }
+  }
+  return certs
+}
+
+function extractCertificateId(text: string, certName: string): string {
+  // Look for ID patterns near the certificate name
+  const start = text.indexOf(certName)
+  if (start === -1) return ''
+
+  const context = text.substring(Math.max(0, start - 50), Math.min(text.length, start + certName.length + 50))
+
+  // Common ID patterns
+  const idPatterns = [
+    /([A-Z]{2,}-[A-Z0-9-]+)/g,
+    /(ID|Certificate|Cert):\s*([A-Z0-9-]+)/gi,
+    /#([A-Z0-9-]+)/g
+  ]
+
+  for (const pattern of idPatterns) {
+    const matches = context.match(pattern)
+    if (matches) {
+      return matches[0].replace(/^(ID|Certificate|Cert):\s*/i, '').replace(/^#/, '')
+    }
   }
 
-  return mockExtractedData
+  return ''
+}
+
+function extractCertificateIssuer(certName: string): string {
+  const lower = certName.toLowerCase()
+  if (lower.includes('aws')) return 'Amazon Web Services'
+  if (lower.includes('azure') || lower.includes('microsoft')) return 'Microsoft'
+  if (lower.includes('google')) return 'Google'
+  if (lower.includes('cisco')) return 'Cisco'
+  if (lower.includes('pmp')) return 'Project Management Institute'
+  if (lower.includes('scrum')) return 'Scrum Alliance'
+  return 'Unknown'
+}
+
+function extractCertificateDate(text: string, certName: string): string {
+  const start = text.indexOf(certName)
+  if (start === -1) return ''
+
+  const context = text.substring(Math.max(0, start - 30), Math.min(text.length, start + certName.length + 30))
+
+  const dateMatch = context.match(/(20\d{2}|19\d{2})/)
+  return dateMatch ? dateMatch[0] : ''
 }
 
 export async function POST(request: NextRequest) {
@@ -183,8 +242,81 @@ export async function POST(request: NextRequest) {
     await fs.writeFile(filePath, buffer)
 
     try {
-      // Extract data from resume
-      const extractedData = await extractResumeData(filePath, file.name)
+      // Read file content
+      const fileBuffer = await fs.readFile(filePath)
+
+      // Call AI service for extraction
+      const aiServiceUrl = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8001'
+      const formData = new FormData()
+      const blob = new Blob([new Uint8Array(fileBuffer)], {
+        type: file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      })
+      formData.append('file', blob, file.name)
+
+      const aiResponse = await fetch(`${aiServiceUrl}/parse-resume-file`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!aiResponse.ok) {
+        throw new Error(`AI service error: ${aiResponse.status}`)
+      }
+
+      const aiResult = await aiResponse.json()
+
+      // Transform AI service response to expected format
+      const extractedData = {
+        personalInfo: {
+          name: aiResult.personal_info?.name || '',
+          email: aiResult.personal_info?.email || '',
+          phone: aiResult.personal_info?.phone || '',
+          location: aiResult.personal_info?.location || '',
+          linkedin: aiResult.personal_info?.linkedin || '',
+          github: aiResult.personal_info?.github || ''
+        },
+        professionalSummary: '',
+        experience: (aiResult.experience || []).map((exp: any) => ({
+          id: uuidv4(),
+          company: exp.company || '',
+          position: exp.position || '',
+          location: '',
+          startDate: exp.duration ? exp.duration.split(' - ')[0] : '',
+          endDate: exp.duration ? exp.duration.split(' - ')[1] : '',
+          current: exp.duration?.toLowerCase().includes('present') || exp.duration?.toLowerCase().includes('current'),
+          description: exp.description || '',
+          proofUploaded: false
+        })),
+        education: (aiResult.education || []).map((edu: any) => ({
+          id: uuidv4(),
+          institution: edu.institution || '',
+          degree: edu.degree || '',
+          field: '',
+          startDate: '',
+          endDate: edu.year || '',
+          grade: '',
+          location: ''
+        })),
+        skills: {
+          technical: (aiResult.skills || [])
+            .filter((skill: any) => skill.category === 'programming' || skill.category === 'databases' || skill.category === 'cloud' || skill.category === 'tools')
+            .map((skill: any) => skill.name) || [],
+          soft: (aiResult.skills || [])
+            .filter((skill: any) => skill.category === 'soft_skills')
+            .map((skill: any) => skill.name) || []
+        },
+        certificates: (aiResult.certificates || []).map((cert: any) => ({
+          id: uuidv4(),
+          name: cert.name || '',
+          issuer: cert.issuer || '',
+          certificateId: cert.certificateId || '',
+          issueDate: cert.date || '',
+          verificationStatus: cert.certificateId ? 'pending' : 'pending',
+          verified: false
+        })),
+        projects: [],
+        awards: [],
+        languages: []
+      }
 
       // Clean up temporary file
       await fs.unlink(filePath)
