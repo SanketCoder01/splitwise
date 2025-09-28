@@ -1,4 +1,4 @@
--- PM Internship Portal - Complete Database Setup with Authentication
+-- Government Internship Portal - Complete Database Setup with Authentication
 -- Run this in Supabase SQL Editor
 
 -- First, create the tables if they don't exist

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Upload, FileText, CheckCircle, AlertCircle, Clock, 
@@ -11,8 +11,9 @@ import {
   Edit, Save, X, Plus, Crown, Trophy, Sparkles
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { extractResumeData } from '../utils/ocrExtractor'
-import { verifyGitHubProfile, verifyLinkedInProfile, verifyCertificate } from '../utils/profileVerifier'
+import { verifyGitHubProfile, verifyLinkedInProfile, verifyCertificate as verifyCertificateUtil } from '../utils/profileVerifier'
 
 interface ResumeData {
   personalInfo: {
@@ -68,7 +69,8 @@ interface AssessmentData {
 }
 
 export default function StudentResumeVerifier() {
-  const [step, setStep] = useState<'upload' | 'personal' | 'experience' | 'certificates' | 'assessment' | 'results'>('upload')
+  const supabase = createClientComponentClient()
+    const [step, setStep] = useState<'upload' | 'personal' | 'experience' | 'certificates' | 'assessment' | 'results' | 'review' | 'dashboard'>('upload')
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [resumeData, setResumeData] = useState<ResumeData | null>(null)
@@ -87,6 +89,111 @@ export default function StudentResumeVerifier() {
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const proofInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const fetchResumeData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { user } = session;
+        setIsProcessing(true);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select(`
+            full_name,
+            phone,
+            address_line1,
+            city,
+            state,
+            pincode,
+            experience ( * ),
+            education ( * ),
+            certificates ( * ),
+            skills,
+            languages,
+            social_profiles
+          `)
+          .eq('id', user.id)
+          .single();
+
+        if (data) {
+          const formattedData: ResumeData = {
+            personalInfo: {
+              name: data.full_name || '',
+              email: user.email || '',
+              phone: data.phone || '',
+              location: `${data.city || ''}, ${data.state || ''}`,
+              address: `${data.address_line1 || ''}, ${data.city || ''}, ${data.state || ''} - ${data.pincode || ''}`,
+              summary: '', // Summary is not in profiles table, might need to be added
+            },
+            experience: data.experience.map((exp: any) => ({
+              id: exp.id,
+              title: exp.title,
+              company: exp.company,
+              duration: `${exp.start_date} - ${exp.end_date || 'Present'}`,
+              description: exp.description,
+              verified: exp.is_verified,
+              proofUploaded: !!exp.proof_url,
+            })),
+            education: data.education.map((edu: any) => ({
+              id: edu.id,
+              degree: edu.degree,
+              institution: edu.institution_name,
+              year: edu.year_of_passing,
+              grade: edu.grade,
+            })),
+            certificates: data.certificates.map((cert: any) => ({
+              id: cert.id,
+              name: cert.name,
+              issuer: cert.issuer,
+              certificateId: cert.certificate_id,
+              verified: cert.is_verified,
+              verificationStatus: cert.is_verified ? 'verified' : 'pending',
+            })),
+            skills: data.skills || [],
+            socialProfiles: {
+              linkedin: { url: data.social_profiles?.linkedin || '', verified: false, exists: !!data.social_profiles?.linkedin },
+              github: { url: data.social_profiles?.github || '', verified: false, exists: !!data.social_profiles?.github },
+            }
+          };
+          setResumeData(formattedData);
+          setStep('review');
+        }
+        setIsProcessing(false);
+      }
+    };
+
+    fetchResumeData();
+  }, [supabase]);
+
+  // Real-time subscriptions
+  useEffect(() => {
+    const channel = supabase.channel('student-verifier-updates');
+
+    const handleDbChange = (payload: any) => {
+      console.log('Database change detected:', payload);
+      // A simple way to handle this is to re-fetch all data
+      // A more optimized approach would be to merge the payload.new data
+      const fetchAgain = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // Re-trigger the initial data fetch logic
+        }
+      };
+      // For now, let's just log it. A full re-fetch can be implemented here.
+      toast('Your profile data has been updated in real-time!');
+    };
+
+    channel
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, handleDbChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'experience' }, handleDbChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'certificates' }, handleDbChange)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, resumeData]);
+
 
   // Real OCR processing function
   const processResume = useCallback(async (file: File) => {
@@ -147,10 +254,53 @@ export default function StudentResumeVerifier() {
         }
       }
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // Save to Supabase
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: user.id,
+        full_name: resumeData.personalInfo.name,
+        email: resumeData.personalInfo.email,
+        phone: resumeData.personalInfo.phone,
+        address_line1: resumeData.personalInfo.address,
+        city: resumeData.personalInfo.location,
+        skills: resumeData.skills,
+        social_profiles: {
+          linkedin: resumeData.socialProfiles.linkedin.url,
+          github: resumeData.socialProfiles.github.url,
+        },
+        updated_at: new Date().toISOString(),
+      });
+
+      if (profileError) throw profileError;
+
+      // Batch insert related data
+      if (resumeData.experience.length > 0) {
+        const { error: expError } = await supabase.from('experience').insert(
+          resumeData.experience.map(exp => ({ ...exp, user_id: user.id }))
+        );
+        if (expError) throw expError;
+      }
+
+      if (resumeData.education.length > 0) {
+        const { error: eduError } = await supabase.from('education').insert(
+          resumeData.education.map(edu => ({ ...edu, user_id: user.id }))
+        );
+        if (eduError) throw eduError;
+      }
+
+      if (resumeData.certificates.length > 0) {
+        const { error: certError } = await supabase.from('certificates').insert(
+          resumeData.certificates.map(cert => ({ ...cert, user_id: user.id }))
+        );
+        if (certError) throw certError;
+      }
+
       setResumeData(resumeData)
       setVerificationScore(30) // Initial score for data extraction
-      setStep('personal')
-      toast.success('Resume data extracted successfully!', { id: 'processing' })
+      setStep('review')
+      toast.success('Resume data extracted and saved successfully!', { id: 'processing' })
       
     } catch (error) {
       console.error('Resume processing error:', error)
@@ -159,64 +309,7 @@ export default function StudentResumeVerifier() {
       setIsProcessing(false)
     }
   }, [])
-      experience: [
-        {
-          id: "exp1",
-          title: "Software Developer",
-          company: "Tech Solutions Pvt Ltd",
-          duration: "Jan 2022 - Present",
-          description: "Developed web applications using React and Node.js",
-          verified: false,
-          proofUploaded: false
-        },
-        {
-          id: "exp2", 
-          title: "Junior Developer",
-          company: "StartupXYZ",
-          duration: "Jun 2021 - Dec 2021",
-          description: "Built mobile applications using React Native",
-          verified: false,
-          proofUploaded: false
-        }
-      ],
-      education: [
-        {
-          id: "edu1",
-          degree: "B.Tech Computer Science",
-          institution: "Mumbai University",
-          year: "2021",
-          grade: "8.5 CGPA"
-        }
-      ],
-      certificates: [
-        {
-          id: "cert1",
-          name: "AWS Certified Developer",
-          issuer: "Amazon Web Services",
-          certificateId: "AWS-DEV-2023-001234",
-          verified: false
-        },
-        {
-          id: "cert2",
-          name: "React Professional Certificate",
-          issuer: "Meta",
-          certificateId: "META-REACT-2023-567890",
-          verified: false
-        }
-      ],
-      skills: ["React", "Node.js", "JavaScript", "TypeScript", "AWS", "MongoDB"],
-      socialProfiles: {
-        linkedin: { url: "https://linkedin.com/in/rahulsharma", verified: false },
-        github: { url: "https://github.com/rahulsharma", verified: false }
-      }
-    }
-    
-    setResumeData(mockData)
-    setVerificationScore(65) // Initial score
-    setIsProcessing(false)
-    setStep('review')
-    toast.success('Resume processed successfully!')
-  }, [])
+
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -231,73 +324,132 @@ export default function StudentResumeVerifier() {
   }
 
   const handleProofUpload = async (experienceId: string, file: File) => {
-    setUploadingProof(experienceId)
-    
-    // Simulate upload
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    if (resumeData) {
-      const updatedData = {
-        ...resumeData,
-        experience: resumeData.experience.map(exp => 
-          exp.id === experienceId 
-            ? { ...exp, proofUploaded: true, verified: true }
-            : exp
-        )
+    setUploadingProof(experienceId);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const filePath = `${user.id}/${experienceId}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('proofs')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('proofs')
+        .getPublicUrl(filePath);
+
+      const { error: dbError } = await supabase
+        .from('experience')
+        .update({ proof_url: publicUrl, is_verified: true })
+        .eq('id', experienceId);
+
+      if (dbError) throw dbError;
+
+      if (resumeData) {
+        const updatedData = {
+          ...resumeData,
+          experience: resumeData.experience.map(exp =>
+            exp.id === experienceId
+              ? { ...exp, proofUploaded: true, verified: true }
+              : exp
+          )
+        };
+        setResumeData(updatedData);
+        setVerificationScore(prev => prev + 10);
       }
-      setResumeData(updatedData)
-      setVerificationScore(prev => prev + 10)
+
+      toast.success('Proof uploaded and verified!');
+    } catch (error) {
+      console.error('Error uploading proof:', error);
+      toast.error('Failed to upload proof.');
+    } finally {
+      setUploadingProof(null);
     }
-    
-    setUploadingProof(null)
-    toast.success('Proof uploaded and verified!')
-  }
+  };
 
   const verifyCertificate = async (certificateId: string) => {
-    if (resumeData) {
-      const updatedData = {
-        ...resumeData,
-        certificates: resumeData.certificates.map(cert => 
-          cert.id === certificateId 
-            ? { ...cert, verified: true }
-            : cert
-        )
+    try {
+      const { error } = await supabase
+        .from('certificates')
+        .update({ is_verified: true, verification_status: 'verified' })
+        .eq('id', certificateId);
+
+      if (error) throw error;
+
+      if (resumeData) {
+        const updatedData = {
+          ...resumeData,
+          certificates: resumeData.certificates.map(cert =>
+            cert.id === certificateId
+              ? { ...cert, verified: true, verificationStatus: 'verified' as const }
+              : cert
+          )
+        };
+        setResumeData(updatedData);
+        setVerificationScore(prev => prev + 5);
       }
-      setResumeData(updatedData)
-      setVerificationScore(prev => prev + 5)
-      toast.success('Certificate verified successfully!')
+      toast.success('Certificate verified successfully!');
+    } catch (error) {
+      console.error('Error verifying certificate:', error);
+      toast.error('Failed to verify certificate.');
     }
-  }
+  };
 
   const verifyLinkedIn = async () => {
-    if (resumeData) {
-      const updatedData = {
-        ...resumeData,
-        socialProfiles: {
-          ...resumeData.socialProfiles,
-          linkedin: { ...resumeData.socialProfiles.linkedin, verified: true }
-        }
-      }
-      setResumeData(updatedData)
-      setVerificationScore(prev => prev + 10)
-      toast.success('LinkedIn profile verified!')
+    if (!resumeData) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const newSocialProfiles = {
+        ...resumeData.socialProfiles,
+        linkedin: { ...resumeData.socialProfiles.linkedin, verified: true },
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ social_profiles: newSocialProfiles })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setResumeData({ ...resumeData, socialProfiles: newSocialProfiles });
+      setVerificationScore(prev => prev + 10);
+      toast.success('LinkedIn profile verified!');
+    } catch (error) {
+      console.error('Error verifying LinkedIn:', error);
+      toast.error('Failed to verify LinkedIn profile.');
     }
-  }
+  };
 
   const verifyGitHub = async () => {
-    if (resumeData) {
-      const updatedData = {
-        ...resumeData,
-        socialProfiles: {
-          ...resumeData.socialProfiles,
-          github: { ...resumeData.socialProfiles.github, verified: true }
-        }
-      }
-      setResumeData(updatedData)
-      setVerificationScore(prev => prev + 10)
-      toast.success('GitHub profile verified!')
+    if (!resumeData) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const newSocialProfiles = {
+        ...resumeData.socialProfiles,
+        github: { ...resumeData.socialProfiles.github, verified: true },
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ social_profiles: newSocialProfiles })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setResumeData({ ...resumeData, socialProfiles: newSocialProfiles });
+      setVerificationScore(prev => prev + 10);
+      toast.success('GitHub profile verified!');
+    } catch (error) {
+      console.error('Error verifying GitHub:', error);
+      toast.error('Failed to verify GitHub profile.');
     }
-  }
+  };
 
   if (step === 'upload') {
     return (

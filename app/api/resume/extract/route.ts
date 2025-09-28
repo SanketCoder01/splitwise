@@ -245,77 +245,117 @@ export async function POST(request: NextRequest) {
       // Read file content
       const fileBuffer = await fs.readFile(filePath)
 
-      // Call AI service for extraction
-      const aiServiceUrl = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8001'
-      const formData = new FormData()
-      const blob = new Blob([new Uint8Array(fileBuffer)], {
-        type: file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      })
-      formData.append('file', blob, file.name)
+      let extractedData: any
 
-      const aiResponse = await fetch(`${aiServiceUrl}/parse-resume-file`, {
-        method: 'POST',
-        body: formData,
-      })
+      try {
+        // Try to call AI service for extraction
+        const aiServiceUrl = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8001'
+        const formData = new FormData()
+        const blob = new Blob([new Uint8Array(fileBuffer)], {
+          type: file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        })
+        formData.append('file', blob, file.name)
 
-      if (!aiResponse.ok) {
-        throw new Error(`AI service error: ${aiResponse.status}`)
-      }
+        const aiResponse = await fetch(`${aiServiceUrl}/parse-resume-file`, {
+          method: 'POST',
+          body: formData,
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        })
 
-      const aiResult = await aiResponse.json()
+        if (aiResponse.ok) {
+          const aiResult = await aiResponse.json()
 
-      // Transform AI service response to expected format
-      const extractedData = {
-        personalInfo: {
-          name: aiResult.personal_info?.name || '',
-          email: aiResult.personal_info?.email || '',
-          phone: aiResult.personal_info?.phone || '',
-          location: aiResult.personal_info?.location || '',
-          linkedin: aiResult.personal_info?.linkedin || '',
-          github: aiResult.personal_info?.github || ''
-        },
-        professionalSummary: '',
-        experience: (aiResult.experience || []).map((exp: any) => ({
-          id: uuidv4(),
-          company: exp.company || '',
-          position: exp.position || '',
-          location: '',
-          startDate: exp.duration ? exp.duration.split(' - ')[0] : '',
-          endDate: exp.duration ? exp.duration.split(' - ')[1] : '',
-          current: exp.duration?.toLowerCase().includes('present') || exp.duration?.toLowerCase().includes('current'),
-          description: exp.description || '',
-          proofUploaded: false
-        })),
-        education: (aiResult.education || []).map((edu: any) => ({
-          id: uuidv4(),
-          institution: edu.institution || '',
-          degree: edu.degree || '',
-          field: '',
-          startDate: '',
-          endDate: edu.year || '',
-          grade: '',
-          location: ''
-        })),
-        skills: {
-          technical: (aiResult.skills || [])
-            .filter((skill: any) => skill.category === 'programming' || skill.category === 'databases' || skill.category === 'cloud' || skill.category === 'tools')
-            .map((skill: any) => skill.name) || [],
-          soft: (aiResult.skills || [])
-            .filter((skill: any) => skill.category === 'soft_skills')
-            .map((skill: any) => skill.name) || []
-        },
-        certificates: (aiResult.certificates || []).map((cert: any) => ({
-          id: uuidv4(),
-          name: cert.name || '',
-          issuer: cert.issuer || '',
-          certificateId: cert.certificateId || '',
-          issueDate: cert.date || '',
-          verificationStatus: cert.certificateId ? 'pending' : 'pending',
-          verified: false
-        })),
-        projects: [],
-        awards: [],
-        languages: []
+          // Transform AI service response to expected format
+          extractedData = {
+            personalInfo: {
+              name: aiResult.personal_info?.name || '',
+              email: aiResult.personal_info?.email || '',
+              phone: aiResult.personal_info?.phone || '',
+              location: aiResult.personal_info?.location || '',
+              linkedin: aiResult.personal_info?.linkedin || '',
+              github: aiResult.personal_info?.github || ''
+            },
+            professionalSummary: '',
+            experience: (aiResult.experience || []).map((exp: any) => ({
+              id: uuidv4(),
+              company: exp.company || '',
+              position: exp.position || '',
+              location: '',
+              startDate: exp.duration ? exp.duration.split(' - ')[0] : '',
+              endDate: exp.duration ? exp.duration.split(' - ')[1] : '',
+              current: exp.duration?.toLowerCase().includes('present') || exp.duration?.toLowerCase().includes('current'),
+              description: exp.description || '',
+              proofUploaded: false
+            })),
+            education: (aiResult.education || []).map((edu: any) => ({
+              id: uuidv4(),
+              institution: edu.institution || '',
+              degree: edu.degree || '',
+              field: '',
+              startDate: '',
+              endDate: edu.year || '',
+              grade: '',
+              location: ''
+            })),
+            skills: {
+              technical: (aiResult.skills || [])
+                .filter((skill: any) => skill.category === 'programming' || skill.category === 'databases' || skill.category === 'cloud' || skill.category === 'tools')
+                .map((skill: any) => skill.name) || [],
+              soft: (aiResult.skills || [])
+                .filter((skill: any) => skill.category === 'soft_skills')
+                .map((skill: any) => skill.name) || []
+            },
+            certificates: (aiResult.certificates || []).map((cert: any) => ({
+              id: uuidv4(),
+              name: cert.name || '',
+              issuer: cert.issuer || '',
+              certificateId: cert.certificateId || '',
+              issueDate: cert.date || '',
+              verificationStatus: cert.certificateId ? 'pending' : 'pending',
+              verified: false
+            })),
+            projects: [],
+            awards: [],
+            languages: []
+          }
+        } else {
+          throw new Error('AI service not available')
+        }
+      } catch (aiError) {
+        if (aiError instanceof Error) {
+          console.log('AI service not available, falling back to local extraction:', aiError.message)
+        } else {
+          console.log('AI service not available, falling back to local extraction:', String(aiError))
+        }
+
+        // Fallback to local extraction when AI service is not available
+        const text = await extractTextLocally(fileBuffer, file.name)
+
+        // Build extracted data using local parsers
+        const personal = extractPersonalInfo(text)
+        const experience = extractExperience(text)
+        const education = extractEducation(text)
+        const skills = extractSkills(text)
+        const certifications = extractCertificates(text)
+
+        extractedData = {
+          personalInfo: {
+            name: personal.name || '',
+            email: personal.email || '',
+            phone: personal.phone || '',
+            location: personal.location || '',
+            linkedin: personal.linkedin || '',
+            github: personal.github || ''
+          },
+          professionalSummary: '',
+          experience,
+          education,
+          skills,
+          certificates: certifications,
+          projects: [],
+          awards: [],
+          languages: []
+        }
       }
 
       // Clean up temporary file

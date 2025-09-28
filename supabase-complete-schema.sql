@@ -1,4 +1,4 @@
--- Complete PM Internship Portal Database Schema
+-- Complete Government Internship Portal Database Schema
 -- Run this in Supabase SQL Editor
 
 -- Enable RLS

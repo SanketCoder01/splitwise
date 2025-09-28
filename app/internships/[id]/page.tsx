@@ -146,7 +146,7 @@ export default function InternshipDetailPage() {
                 className="object-contain"
               />
               <div>
-                <h1 className="text-lg font-bold text-gray-900">PM Internship Portal</h1>
+                <h1 className="text-lg font-bold text-gray-900">Government Internship Portal</h1>
                 <p className="text-xs text-gray-600">Ministry of Education</p>
               </div>
             </div>

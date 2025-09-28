@@ -477,7 +477,7 @@ ON CONFLICT (employee_id) DO NOTHING;
 
 -- Insert sample schemes
 INSERT INTO schemes (title, department, ministry, description, duration, stipend, eligibility, features, locations, slots) VALUES 
-('PM Internship Scheme', 'Ministry of Education', 'Ministry of Education', 'Flagship internship program providing hands-on experience in government departments', '6-12 months', '₹25,000 - ₹40,000', 'Graduate/Post-graduate in any discipline', ARRAY['Direct mentorship', 'Policy exposure', 'Government certificate'], ARRAY['New Delhi', 'Mumbai', 'Bangalore'], 10000),
+('Government Internship Scheme', 'Ministry of Education', 'Ministry of Education', 'Flagship internship program providing hands-on experience in government departments', '6-12 months', '₹25,000 - ₹40,000', 'Graduate/Post-graduate in any discipline', ARRAY['Direct mentorship', 'Policy exposure', 'Government certificate'], ARRAY['New Delhi', 'Mumbai', 'Bangalore'], 10000),
 ('Digital India Internship', 'Ministry of Electronics and IT', 'Ministry of Electronics and IT', 'Technology-focused internships in AI, ML, and Digital Governance', '3-6 months', '₹30,000 - ₹50,000', 'Engineering/MCA/MSc in Computer Science', ARRAY['Tech projects', 'Innovation labs', 'Startup exposure'], ARRAY['Hyderabad', 'Pune', 'Chennai'], 5000)
 ON CONFLICT DO NOTHING;
 
@@ -593,4 +593,4 @@ CREATE POLICY "Users can insert own applications" ON applications FOR INSERT WIT
 -- This completes the database schema setup
 -- All tables, policies, triggers, and functions are now created
 -- Missing columns have been safely added
--- The system is ready for the PM Internship Portal
+-- The system is ready for the Government Internship Portal

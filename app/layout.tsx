@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PM Internship & Resume Verifier",
+  title: "Government Internship & Resume Verifier",
   description: "Government of India - Ministry of Education",
 };
 

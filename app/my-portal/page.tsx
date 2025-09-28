@@ -78,7 +78,7 @@ export default function MyPortalPage() {
   const certificates: Certificate[] = [
     {
       id: '1',
-      title: 'PM Internship Program Completion Certificate',
+      title: 'Government Internship Program Completion Certificate',
       issueDate: '2023-12-15',
       validUntil: '2028-12-15',
       certificateId: 'PMI-CERT-2023-001234',

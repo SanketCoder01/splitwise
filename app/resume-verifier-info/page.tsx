@@ -155,7 +155,7 @@ export default function ResumeVerifierInfoPage() {
                 className="h-10 w-10"
               />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">PM Internship Portal</h1>
+                <h1 className="text-xl font-bold text-gray-900">Government Internship Portal</h1>
                 <p className="text-sm text-gray-600">भारत सरकार | Government of India</p>
               </div>
             </div>
@@ -442,7 +442,7 @@ export default function ResumeVerifierInfoPage() {
                   className="h-8 w-8"
                 />
                 <div>
-                  <h3 className="text-lg font-semibold">PM Internship Portal</h3>
+                  <h3 className="text-lg font-semibold">Government Internship Portal</h3>
                   <p className="text-sm text-gray-400">Ministry of Education</p>
                 </div>
               </div>

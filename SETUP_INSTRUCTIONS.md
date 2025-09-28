@@ -1,4 +1,4 @@
-# PM Internship Portal - Setup Instructions
+# Government Internship Portal - Setup Instructions
 
 ## 🚀 Complete Setup Guide
 
@@ -54,7 +54,7 @@ The authentication is already configured with:
 #### 🎨 Government Portal Design
 - **Header**: Official Government of India styling with logo
 - **Sidebar**: Enhanced with profile card, progress bar, and quick stats
-- **Colors**: Orange/Blue theme matching PM Internship portal
+- **Colors**: Orange/Blue theme matching Government Internship portal
 - **Responsive**: Mobile-friendly with auto-close sidebar
 
 ### 4. Database Schema Overview
@@ -172,7 +172,7 @@ components/
 
 ---
 
-## 🎉 Your PM Internship Portal is Ready!
+## 🎉 Your Government Internship Portal is Ready!
 
 The application now includes:
 - ✅ Complete 6-step profile system

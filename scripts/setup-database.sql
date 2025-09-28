@@ -1,4 +1,4 @@
--- Complete Database Setup for PM Internship Portal
+-- Complete Database Setup for Government Internship Portal
 -- Run this in Supabase SQL Editor
 
 -- =====================================================

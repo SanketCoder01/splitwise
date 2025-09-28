@@ -70,7 +70,7 @@ export default function SupportPage() {
       category: "Application Process",
       questions: [
         {
-          q: "How do I apply for PM Internship Program?",
+          q: "How do I apply for Government Internship Program?",
           a: "Visit our portal, create an account, complete your profile, verify documents, and apply for available positions."
         },
         {
@@ -87,7 +87,7 @@ export default function SupportPage() {
       category: "Eligibility & Selection",
       questions: [
         {
-          q: "What is the age limit for PM Internship Program?",
+          q: "What is the age limit for Government Internship Program?",
           a: "Age limit is 18-28 years with relaxation for SC/ST (+5 years) and OBC (+3 years) candidates."
         },
         {
@@ -185,7 +185,7 @@ export default function SupportPage() {
                 className="object-contain"
               />
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">PM Internship & Resume Verifier</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Government Internship & Resume Verifier</h1>
                 <p className="text-sm text-gray-600">MINISTRY OF EDUCATION</p>
                 <p className="text-xs text-gray-500">Government of India</p>
               </div>
@@ -202,7 +202,7 @@ export default function SupportPage() {
               Support & Help Center
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Get comprehensive support for your PM Internship Program journey. 
+              Get comprehensive support for your Government Internship Program journey. 
               Our dedicated team is here to assist you 24/7 with any questions or concerns.
             </p>
           </div>
@@ -359,7 +359,7 @@ export default function SupportPage() {
                   {[
                     {
                       title: "User Manual",
-                      description: "Complete guide to using the PM Internship Portal",
+                      description: "Complete guide to using the Government Internship Portal",
                       icon: BookOpen,
                       link: "/manual.pdf",
                       color: "blue"

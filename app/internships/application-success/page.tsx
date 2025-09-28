@@ -62,7 +62,7 @@ export default function ApplicationSuccessPage() {
             transition={{ delay: 0.4 }}
             className="text-gray-600 mb-8"
           >
-            Thank you for applying to the PM Internship Program. Your application has been received and will be reviewed by our government panel.
+            Thank you for applying to the Government Internship Program. Your application has been received and will be reviewed by our government panel.
           </motion.p>
 
           <motion.div

@@ -1,4 +1,4 @@
-# PM Internship Portal - Complete Login Credentials
+# Government Internship Portal - Complete Login Credentials
 
 ## 🏛️ Government Officials
 - **Employee ID**: `GOV001` | **Password**: `gov123456`

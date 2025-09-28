@@ -198,7 +198,7 @@ export default function RegisterPage() {
                     <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
                       <Shield className="w-10 h-10 text-orange-600" />
                     </div>
-                    <h2 className="text-3xl font-bold mb-2">PM Internship Portal</h2>
+                    <h2 className="text-3xl font-bold mb-2">Government Internship Portal</h2>
                     <p className="text-orange-100">Student Registration</p>
                   </div>
                   
@@ -241,7 +241,7 @@ export default function RegisterPage() {
                 <div className="max-w-md mx-auto">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl font-bold text-gray-800 mb-2">Create Account</h3>
-                    <p className="text-gray-600">Join the PM Internship Portal</p>
+                    <p className="text-gray-600">Join the Government Internship Portal</p>
                   </div>
 
                   <form onSubmit={handleSubmit} className="space-y-4">
@@ -508,7 +508,7 @@ export default function RegisterPage() {
               <div className="flex items-center mb-3">
                 <AlertCircle className="w-6 h-6 text-orange-500 mr-3" />
                 <p className="text-gray-700">
-                  This email address is already registered with PM Internship Portal.
+                  This email address is already registered with Government Internship Portal.
                 </p>
               </div>
               <p className="text-sm text-gray-600">

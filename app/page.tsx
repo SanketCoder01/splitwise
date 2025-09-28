@@ -1,24 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Shield, 
-  FileCheck, 
-  Users, 
-  Award, 
-  ChevronRight, 
-  Bell,
-  Search,
-  Menu,
-  X,
-  Cpu,
-  Target,
-  BarChart3,
-  Home,
-  FileText,
-  CheckCircle
-} from 'lucide-react'
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Shield, FileCheck, Award, Users, Target, Newspaper, MessageSquare, BookOpen, BarChart3, Home, FileText, CheckCircle,
+  Zap, Sparkles, LogOut, ArrowRight, AlertCircle, ExternalLink, Eye, Palette, PlayCircle, Phone, Mail, Lock, Globe, Cpu,
+  Code, Database, ChevronLeft, ChevronRight, Menu, X, Bell, Search
+} from 'lucide-react';
 import Link from 'next/link'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
@@ -35,7 +23,7 @@ export default function HomePage() {
     {
       title: "Empowering India's Future",
       subtitle: "Connecting talented students with premier government internships",
-      description: "Gain invaluable experience and contribute to nation-building with the PM Internship Portal.",
+      description: "Gain invaluable experience and contribute to nation-building with the Government Internship Portal.",
       image: "https://images.unsplash.com/photo-1593113646773-9b2f14a0b7a8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       cta: "Explore Internships"
     },
@@ -97,7 +85,7 @@ export default function HomePage() {
     {
       name: "Dr. Rajesh Kumar",
       position: "HR Director, Tech Mahindra",
-      content: "PM Internship Portal has revolutionized our hiring process. The AI-powered verification saves us hours of manual work.",
+      content: "Government Internship Portal has revolutionized our hiring process. The AI-powered verification saves us hours of manual work.",
       rating: 5,
       image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
     },
@@ -111,7 +99,7 @@ export default function HomePage() {
     {
       name: "Amit Patel",
       position: "CEO, StartupXYZ",
-      content: "As a startup, PM Internship Portal helps us make confident hiring decisions with verified candidate information.",
+      content: "As a startup, Government Internship Portal helps us make confident hiring decisions with verified candidate information.",
       rating: 5,
       image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
     }
@@ -123,19 +111,19 @@ export default function HomePage() {
       answer: "Our AI system uses advanced natural language processing to extract and analyze resume data, cross-referencing information with multiple databases to ensure accuracy and authenticity."
     },
     {
-      question: "Is my data secure with PM Internship Portal?",
+      question: "Is my data secure with Government Internship Portal?",
       answer: "Yes, we use enterprise-grade security with blockchain technology to ensure your data is encrypted, secure, and tamper-proof. We comply with all government data protection regulations."
     },
     {
       question: "What file formats are supported?",
-      answer: "PM Internship Portal supports PDF, DOC, and DOCX formats. Our AI can process resumes in multiple languages and various layouts with high accuracy."
+      answer: "Government Internship Portal supports PDF, DOC, and DOCX formats. Our AI can process resumes in multiple languages and various layouts with high accuracy."
     },
     {
       question: "How long does verification take?",
       answer: "Basic resume parsing takes 2-3 minutes. Complete verification including skills assessment and document validation typically takes 15-30 minutes depending on the complexity."
     },
     {
-      question: "Can organizations integrate PM Internship Portal with their existing systems?",
+      question: "Can organizations integrate Government Internship Portal with their existing systems?",
       answer: "Yes, we provide comprehensive APIs and integration support for ATS systems, HRMS platforms, and custom applications. Our technical team assists with seamless integration."
     },
     {
@@ -150,6 +138,41 @@ export default function HomePage() {
   //   }, 5000)
   //   return () => clearInterval(timer)
   // }, [heroSlides.length])
+
+  const carouselImages = [
+    {
+      src: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      alt: 'Team collaborating in a modern office',
+      title: 'Shape the Future of the Nation',
+      subtitle: 'Explore prestigious government internships and launch your career in public service.',
+    },
+    {
+      src: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2232&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      alt: 'Young professionals working on laptops',
+      title: 'Gain Real-World Experience',
+      subtitle: 'Contribute to meaningful projects that impact millions of lives across India.',
+    },
+    {
+      src: 'https://images.unsplash.com/photo-1600880292210-8522b988318a?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      alt: 'A person receiving a certificate',
+      title: 'Build a Foundation for Success',
+      subtitle: 'Our internships provide the skills and connections you need for a successful career.',
+    },
+  ];
+
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const goToPrevious = () => {
+    setCurrentImageIndex((prevIndex) =>
+      prevIndex === 0 ? carouselImages.length - 1 : prevIndex - 1
+    );
+  };
+
+  const goToNext = () => {
+    setCurrentImageIndex((prevIndex) =>
+      prevIndex === carouselImages.length - 1 ? 0 : prevIndex + 1
+    );
+  };
 
   useEffect(() => {
     const featureTimer = setInterval(() => {
@@ -370,7 +393,7 @@ export default function HomePage() {
                   className="sm:w-[60px] sm:h-[60px] object-contain"
                 />
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-sm sm:text-2xl font-bold text-gray-900 truncate">PM Internship & Resume Verifier</h1>
+                  <h1 className="text-sm sm:text-2xl font-bold text-gray-900 truncate">Government Internship & Resume Verifier</h1>
                   <p className="text-xs sm:text-sm text-gray-600">MINISTRY OF EDUCATION</p>
                   <p className="text-xs text-gray-500 hidden sm:block">Government of India</p>
                 </div>
@@ -493,85 +516,81 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Live Updates Ticker */}
-      <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white py-2 overflow-hidden">
-        <div className="container mx-auto">
-          <div className="flex items-center">
-            <div className="flex items-center mr-4">
-              <div className="w-3 h-3 bg-white rounded-full animate-pulse mr-2"></div>
-              <span className="font-semibold text-sm">🔴 LIVE UPDATES:</span>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <div className="animate-marquee whitespace-nowrap text-sm">
-                <span className="mx-8">🎉 50+ New Internships Added from Ministry of Defence</span>
-                <span className="mx-8">⚡ 2,347 Resumes Verified in Last 24 Hours</span>
-                <span className="mx-8">🏆 95% Students Placed After Verification</span>
-                <span className="mx-8">🚀 AI Resume Matching Accuracy Improved to 98%</span>
-                <span className="mx-8">📢 Summer Internship Program 2025 Registration Open</span>
-                <span className="mx-8">💼 New Government Departments Added: ISRO, DRDO, BARC</span>
-                <span className="mx-8">🔥 Real-time Document Verification Now Available</span>
-                <span className="mx-8">📋 New Resume Templates Available for Download</span>
-                <span className="mx-8">🌟 Achievement: 1 Million Resumes Verified Successfully</span>
-                <span className="mx-8">🚀 Mobile App Beta Testing Phase Started</span>
-              </div>
-            </div>
-          </div>
+      <section className="relative w-full h-96 md:h-[500px]" id="main-content">
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={currentImageIndex}
+            className="absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Image
+              src={carouselImages[currentImageIndex].src}
+              alt={carouselImages[currentImageIndex].alt}
+              layout="fill"
+              objectFit="cover"
+              quality={100}
+              priority={currentImageIndex === 0}
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-50" />
+          </motion.div>
+        </AnimatePresence>
+
+        <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white p-4">
+          <motion.h1 
+            key={currentImageIndex + '-title'}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight"
+          >
+            {carouselImages[currentImageIndex].title}
+          </motion.h1>
+          <motion.p 
+            key={currentImageIndex + '-subtitle'}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-lg md:text-2xl max-w-3xl mx-auto"
+          >
+            {carouselImages[currentImageIndex].subtitle}
+          </motion.p>
+          <motion.div
+            key={currentImageIndex + '-cta'}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="mt-8"
+          >
+            <Link href="/internships" className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105">
+              Find Your Internship
+            </Link>
+          </motion.div>
         </div>
-      </div>
 
+        <button 
+          onClick={goToPrevious}
+          className="absolute top-1/2 left-4 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full transition-colors"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <button 
+          onClick={goToNext}
+          className="absolute top-1/2 right-4 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full transition-colors"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
 
-      {/* Full-Size Sliding Images Section */}
-      <section className="relative overflow-hidden h-96" id="main-content">
-        {/* Full-width Sliding Images */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="sliding-images-container">
-            <div className="sliding-image">
-              <Image
-                src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1920&h=600&fit=crop"
-                alt="Government office building"
-                width={1920}
-                height={600}
-                className="object-cover w-full h-full"
-                priority
-              />
-            </div>
-            <div className="sliding-image">
-              <Image
-                src="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=1920&h=600&fit=crop"
-                alt="Resume and documents"
-                width={1920}
-                height={600}
-                className="object-cover w-full h-full"
-              />
-            </div>
-            <div className="sliding-image">
-              <Image
-                src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1920&h=600&fit=crop"
-                alt="Government internship program"
-                width={1920}
-                height={600}
-                className="object-cover w-full h-full"
-              />
-            </div>
-            <div className="sliding-image">
-              <Image
-                src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1920&h=600&fit=crop"
-                alt="Digital government services"
-                width={1920}
-                height={600}
-                className="object-cover w-full h-full"
-              />
-            </div>
-            <div className="sliding-image">
-              <Image
-                src="https://images.unsplash.com/photo-1486312338219-ce68e2c6b696?w=1920&h=600&fit=crop"
-                alt="Career development and verification"
-                width={1920}
-                height={600}
-                className="object-cover w-full h-full"
-              />
-            </div>
-          </div>
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex space-x-2">
+          {carouselImages.map((_, index) => (
+            <button 
+              key={index}
+              onClick={() => setCurrentImageIndex(index)}
+              className={`w-3 h-3 rounded-full transition-colors ${currentImageIndex === index ? 'bg-white' : 'bg-white/50 hover:bg-white/75'}`}
+            />
+          ))}
         </div>
       </section>
 
@@ -942,7 +961,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Join thousands who trust PM Internship Portal for career opportunities
+            Join thousands who trust Government Internship Portal for career opportunities
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register" className="bg-white text-blue-600 px-8 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors">
@@ -972,7 +991,7 @@ export default function HomePage() {
                     className="object-contain"
                   />
                   <div>
-                    <h3 className="text-xl font-bold text-white">PM Internship Portal</h3>
+                    <h3 className="text-xl font-bold text-white">Government Internship Portal</h3>
                     <p className="text-sm text-gray-400">Ministry of Education</p>
                     <p className="text-xs text-gray-500">Government of India</p>
                   </div>
@@ -1019,7 +1038,7 @@ export default function HomePage() {
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row items-center justify-between text-sm text-gray-400">
               <div className="mb-2 md:mb-0">
-                <p>&copy; 2025 PM Internship Portal - Ministry of Education, Government of India. All rights reserved.</p>
+                <p>&copy; 2025 Government Internship Portal - Ministry of Education, Government of India. All rights reserved.</p>
               </div>
               <div className="flex items-center space-x-4">
                 <span>Last Updated: {new Date().toLocaleDateString('en-IN')}</span>

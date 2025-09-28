@@ -36,7 +36,7 @@ export default function AIChatbot() {
       const welcomeMessage: Message = {
         id: 'welcome',
         type: 'bot',
-        content: "Hello! I'm your AI assistant for the PM Internship Portal. I can help you with applications, document uploads, finding internships, and answering questions. How can I assist you today?",
+        content: "Hello! I'm your AI assistant for the Government Internship Portal. I can help you with applications, document uploads, finding internships, and answering questions. How can I assist you today?",
         timestamp: new Date(),
         suggestions: [
           "How do I apply for internships?",

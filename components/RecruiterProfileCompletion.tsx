@@ -14,8 +14,9 @@ interface RecruiterProfile {
   id: string
   full_name?: string
   company_name?: string
-  profile_image?: string
-  profile_completed: boolean
+  company_logo?: string;
+  company_registration_url?: string;
+  profile_completed: boolean;
   profile_step: number
   approval_status: 'pending' | 'approved' | 'rejected'
   email?: string
@@ -98,7 +99,7 @@ export default function RecruiterProfileCompletion({ recruiterData, onProfileUpd
     setIsLoading(true)
     try {
       // Prepare data for Supabase
-      const profileData = {
+            const profileData: any = {
         // Personal Details
         full_name: formData.full_name,
         designation: formData.designation,

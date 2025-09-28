@@ -64,7 +64,7 @@ export default function SchemesPage() {
   const schemes = [
     {
       id: 1,
-      title: "PM Internship Scheme",
+      title: "Government Internship Scheme",
       department: "Ministry of Education",
       slots: "10,000+",
       icon: Users,
@@ -360,7 +360,7 @@ export default function SchemesPage() {
                 className="object-contain"
               />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">PM Internship Schemes Portal</h1>
+                <h1 className="text-xl font-bold text-gray-900">Government Internship Schemes Portal</h1>
                 <p className="text-sm text-gray-600">Ministry of Education, Government of India</p>
                 <button
                   onClick={() => window.history.back()}
@@ -544,7 +544,7 @@ export default function SchemesPage() {
                           
                           <h4 className="font-semibold text-gray-900 mb-3">Features</h4>
                           <ul className="space-y-2">
-                            {scheme.features.map((feature, idx) => (
+                                                        {scheme.features.map((feature: string, idx: number) => (
                               <li key={idx} className="flex items-center space-x-2">
                                 <CheckCircle className="w-4 h-4 text-green-600" />
                                 <span className="text-gray-600 text-sm">{feature}</span>
@@ -556,7 +556,7 @@ export default function SchemesPage() {
                         <div>
                           <h4 className="font-semibold text-gray-900 mb-3">Locations</h4>
                           <div className="flex flex-wrap gap-2 mb-4">
-                            {scheme.locations.map((location, idx) => (
+                                                        {scheme.locations.map((location: string, idx: number) => (
                               <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                                 {location}
                               </span>
@@ -565,7 +565,7 @@ export default function SchemesPage() {
                           
                           <h4 className="font-semibold text-gray-900 mb-3">Benefits</h4>
                           <ul className="space-y-2">
-                            {scheme.benefits.map((benefit, idx) => (
+                                                        {scheme.benefits.map((benefit: string, idx: number) => (
                               <li key={idx} className="flex items-center space-x-2">
                                 <Award className="w-4 h-4 text-orange-600" />
                                 <span className="text-gray-600 text-sm">{benefit}</span>
@@ -793,7 +793,7 @@ export default function SchemesPage() {
               
               <h3 className="text-2xl font-bold text-gray-900 mb-4">Application Submitted!</h3>
               <p className="text-gray-600 mb-6">
-                Your application has been successfully submitted to the PM Internship Portal. 
+                Your application has been successfully submitted to the Government Internship Portal. 
                 You will receive updates via email about your application status.
               </p>
               

@@ -1,4 +1,4 @@
--- PM Internship Portal - Supabase Database Schema
+-- GOVERNMENT INTERNSHIP PORTAL - Supabase Database Schema
 -- Run these commands in your Supabase SQL Editor
 
 -- First, let's check what tables exist and add missing columns safely
@@ -430,7 +430,7 @@ CREATE TRIGGER notify_new_internship_trigger
 
 -- Sample schemes data
 INSERT INTO schemes (title, department, description, eligibility, duration, stipend_range, total_slots, available_slots, features, benefits, locations, application_deadline, color) VALUES
-('PM Internship Scheme', 'Ministry of Education', 'Flagship internship program providing hands-on experience in government departments', 'Graduate/Post-graduate in any discipline', '6-12 months', '₹25,000 - ₹40,000', 10000, 8500, 
+('Government Internship Scheme', 'Ministry of Education', 'Flagship internship program providing hands-on experience in government departments', 'Graduate/Post-graduate in any discipline', '6-12 months', '₹25,000 - ₹40,000', 10000, 8500, 
  ARRAY['Direct mentorship from senior officials', 'Policy-making exposure', 'Government certificate'], 
  ARRAY['Monthly stipend', 'Health insurance', 'Professional development'], 
  ARRAY['New Delhi', 'Mumbai', 'Bangalore', 'Chennai'], 

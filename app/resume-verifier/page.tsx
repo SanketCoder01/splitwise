@@ -231,7 +231,7 @@ export default function ResumeVerifierPage() {
                   className="object-contain"
                 />
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">PM Internship & Resume Verifier</h1>
+                  <h1 className="text-xl font-bold text-gray-900">Government Internship & Resume Verifier</h1>
                   <p className="text-xs text-gray-600">MINISTRY OF EDUCATION</p>
                   <p className="text-xs text-gray-500">Government of India</p>
                 </div>

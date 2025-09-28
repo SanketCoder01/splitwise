@@ -1,4 +1,4 @@
--- Recruiter Profile Tables for PM Internship Portal
+-- Recruiter Profile Tables for Government Internship Portal
 -- Run this in Supabase SQL Editor
 
 -- Create recruiter_profiles table

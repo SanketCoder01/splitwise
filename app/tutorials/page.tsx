@@ -23,7 +23,7 @@ interface Tutorial {
 const tutorials: Tutorial[] = [
   {
     id: '1',
-    title: 'Getting Started with PM Internship Portal',
+    title: 'Getting Started with Government Internship Portal',
     description: 'Complete introduction to the portal, registration process, and first steps for new students.',
     thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=225&fit=crop',
     duration: '12:30',
@@ -193,7 +193,7 @@ export default function TutorialsPage() {
             Tutorials & Guidance Videos
           </h1>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Master the PM Internship Portal with our comprehensive video tutorials and interactive guides. 
+            Master the Government Internship Portal with our comprehensive video tutorials and interactive guides. 
             Learn from experts and boost your internship application success rate.
           </p>
         </div>
@@ -377,7 +377,7 @@ export default function TutorialsPage() {
             <BookOpen className="w-12 h-12 mx-auto mb-4" />
             <h3 className="text-2xl font-bold mb-2">Recommended Learning Path</h3>
             <p className="text-blue-100 max-w-2xl mx-auto">
-              Follow our structured learning path to master the PM Internship Portal step by step.
+              Follow our structured learning path to master the Government Internship Portal step by step.
             </p>
           </div>
 

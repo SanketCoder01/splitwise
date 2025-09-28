@@ -294,7 +294,7 @@ export default function InternshipsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">PM Internship Program</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Government Internship Program</h1>
               <p className="text-gray-600 mt-1">Discover government internship opportunities</p>
             </div>
             <div className="mt-4 sm:mt-0">
@@ -768,7 +768,7 @@ export default function InternshipsPage() {
               
               <h3 className="text-2xl font-bold text-gray-900 mb-4">Application Submitted!</h3>
               <p className="text-gray-600 mb-6">
-                Your application has been successfully submitted to the PM Internship Portal. 
+                Your application has been successfully submitted to the Government Internship Portal. 
                 You will receive updates via email about your application status.
               </p>
               

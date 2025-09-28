@@ -1,4 +1,4 @@
--- PM Internship Portal - Clean Database Schema
+-- Government Internship Portal - Clean Database Schema
 -- Run this in Supabase SQL Editor
 -- NO STATIC DATA - Real-time system only
 

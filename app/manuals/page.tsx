@@ -113,7 +113,7 @@ const manuals: Manual[] = [
   {
     id: '8',
     title: 'API Documentation',
-    description: 'Technical documentation for developers integrating with the PM Internship Portal.',
+    description: 'Technical documentation for developers integrating with the Government Internship Portal.',
     category: 'technical',
     type: 'interactive',
     size: 'Online',
@@ -139,7 +139,7 @@ const manuals: Manual[] = [
   {
     id: '10',
     title: 'Mobile App User Guide',
-    description: 'Complete guide for using the PM Internship Portal mobile application.',
+    description: 'Complete guide for using the Government Internship Portal mobile application.',
     category: 'student',
     type: 'video',
     size: '30 min',
@@ -216,7 +216,7 @@ export default function ManualsPage() {
           </h1>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             Access comprehensive guides, tutorials, and documentation to help you navigate 
-            the PM Internship Portal effectively. Available in multiple formats and languages.
+            the Government Internship Portal effectively. Available in multiple formats and languages.
           </p>
         </div>
 

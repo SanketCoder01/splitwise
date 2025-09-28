@@ -14,8 +14,8 @@ interface FAQ {
 const faqs: FAQ[] = [
   {
     id: '1',
-    question: 'What is the PM Internship Portal?',
-    answer: 'The PM Internship Portal is a government initiative by the Ministry of Education to provide internship opportunities to students across various government departments and PSUs. It aims to bridge the gap between academic learning and practical industry experience.',
+    question: 'What is the Government Internship Portal?',
+    answer: 'The Government Internship Portal is a government initiative by the Ministry of Education to provide internship opportunities to students across various government departments and PSUs. It aims to bridge the gap between academic learning and practical industry experience.',
     category: 'general'
   },
   {
@@ -39,7 +39,7 @@ const faqs: FAQ[] = [
   {
     id: '5',
     question: 'Is there any application fee?',
-    answer: 'No, the PM Internship Portal is completely free. There are no registration fees, application fees, or any other charges. Beware of fraudulent websites asking for money.',
+    answer: 'No, the Government Internship Portal is completely free. There are no registration fees, application fees, or any other charges. Beware of fraudulent websites asking for money.',
     category: 'general'
   },
   {
@@ -51,7 +51,7 @@ const faqs: FAQ[] = [
   {
     id: '7',
     question: 'Will I receive a stipend during the internship?',
-    answer: 'Yes, all internships under the PM Internship Portal provide a monthly stipend ranging from ₹15,000 to ₹50,000 depending on the role, department, and location.',
+    answer: 'Yes, all internships under the Government Internship Portal provide a monthly stipend ranging from ₹15,000 to ₹50,000 depending on the role, department, and location.',
     category: 'general'
   },
   {
@@ -122,7 +122,7 @@ export default function FAQsPage() {
             Frequently Asked Questions
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Find answers to common questions about the PM Internship Portal. 
+            Find answers to common questions about the Government Internship Portal. 
             Can't find what you're looking for? Contact our support team.
           </p>
         </div>

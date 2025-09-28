@@ -181,7 +181,7 @@ export default function RoadmapPage() {
                 className="object-contain"
               />
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">PM Internship & Resume Verifier</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Government Internship & Resume Verifier</h1>
                 <p className="text-sm text-gray-600">MINISTRY OF EDUCATION</p>
                 <p className="text-xs text-gray-500">Government of India</p>
               </div>
@@ -198,7 +198,7 @@ export default function RoadmapPage() {
               Application Roadmap
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Your step-by-step guide to successfully applying and completing the PM Internship Program. 
+              Your step-by-step guide to successfully applying and completing the Government Internship Program. 
               Follow this comprehensive roadmap to maximize your chances of success.
             </p>
           </div>
