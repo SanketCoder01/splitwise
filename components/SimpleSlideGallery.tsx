@@ -43,7 +43,7 @@ export default function SimpleSlideGallery({
       <div 
         className="flex transition-transform duration-1000 ease-in-out h-full"
         style={{ 
-          transform: `translateX(-${currentIndex * 100}%)`,
+          transform: `translateX(-${currentIndex * (100 / items.length)}%)`,
           width: `${items.length * 100}%`
         }}
       >
@@ -58,6 +58,7 @@ export default function SimpleSlideGallery({
               alt={item.text}
               fill
               className="object-cover"
+              unoptimized
               priority={index === 0}
             />
             {showText && (

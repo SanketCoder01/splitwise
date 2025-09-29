@@ -6,7 +6,7 @@ import {
   Search, Filter, MapPin, Calendar, Building, Users, 
   Star, Zap, Brain, ChevronDown, ChevronUp, ExternalLink,
   Clock, DollarSign, Award, BookOpen, Target, X, Upload,
-  FileText, CheckCircle, Loader
+  FileText, CheckCircle, Loader, Mail, Phone
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
@@ -155,6 +155,25 @@ export default function InternshipsPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [isApplying, setIsApplying] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [inlineDetailId, setInlineDetailId] = useState<string | null>(null)
+
+  const toggleInlineDetail = (id: string) => {
+    setInlineDetailId(prev => prev === id ? null : id)
+    // Smooth scroll to the opened item
+    setTimeout(() => {
+      const el = document.getElementById(`internship-${id}`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }
+
+  const getDetailImages = (i: Internship): string[] => {
+    const defaults = [
+      'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=400&fit=crop'
+    ]
+    return i.image ? [i.image, ...defaults.slice(0, 2)] : defaults
+  }
 
   // BYPASS: Skip Supabase resume fetching, use mock data
   useEffect(() => {
@@ -414,6 +433,7 @@ export default function InternshipsPage() {
               className={`bg-white rounded-lg shadow-sm border hover:shadow-md transition-all duration-200 ${
                 showAIMatching && internship.isMatched ? 'ring-2 ring-purple-200 bg-purple-50/30' : ''
               }`}
+              id={`internship-${internship.id}`}
             >
               <div className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
@@ -489,31 +509,20 @@ export default function InternshipsPage() {
                   </div>
 
                   <div className="mt-4 lg:mt-0 lg:ml-6 flex flex-col space-y-3">
-                    <Link href={`/internships/${internship.id}`}>
-                      <motion.button
-                        className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 w-full"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        Check Availability
-                      </motion.button>
-                    </Link>
-                    <button
-                      onClick={() => setExpandedInternship(expandedInternship === internship.id ? null : internship.id)}
-                      className="flex items-center justify-center space-x-1 text-gray-600 hover:text-gray-800 transition-colors duration-200"
+                    <motion.button
+                      onClick={() => toggleInlineDetail(internship.id)}
+                      className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 w-full"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      <span>View Details</span>
-                      {expandedInternship === internship.id ? 
-                        <ChevronUp className="w-4 h-4" /> : 
-                        <ChevronDown className="w-4 h-4" />
-                      }
-                    </button>
+                      {inlineDetailId === internship.id ? 'Hide Details' : 'Check Availability'}
+                    </motion.button>
                   </div>
                 </div>
 
-                {/* Expanded Details */}
+                {/* Inline Detailed View */}
                 <AnimatePresence>
-                  {expandedInternship === internship.id && (
+                  {inlineDetailId === internship.id && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
@@ -521,28 +530,120 @@ export default function InternshipsPage() {
                       transition={{ duration: 0.3 }}
                       className="mt-6 pt-6 border-t border-gray-200"
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-3">Requirements</h4>
-                          <ul className="space-y-2">
-                            {internship.requirements.map((req, idx) => (
-                              <li key={idx} className="flex items-center space-x-2">
-                                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                <span className="text-gray-600">{req}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-3">Ministry Details</h4>
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <Award className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-600">{internship.ministry}</span>
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-6">
+                          <div className="bg-white rounded-lg border p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center space-x-2">
+                                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">{internship.ministry}</span>
+                                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                                  {internship.type.charAt(0).toUpperCase() + internship.type.slice(1)}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xl font-bold text-green-600">{internship.stipend}</div>
+                                <div className="text-xs text-gray-500">Monthly Stipend</div>
+                              </div>
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <Target className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-600 capitalize">{internship.type} position</span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                              <Clock className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                              <div className="text-sm font-medium text-gray-900">{internship.duration}</div>
+                              <div className="text-xs text-gray-500">Duration</div>
+                            </div>
+                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                              <Users className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                              <div className="text-sm font-medium text-gray-900">{internship.applications}/{internship.maxApplications}</div>
+                              <div className="text-xs text-gray-500">Applications</div>
+                            </div>
+                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                              <Calendar className="w-6 h-6 text-orange-600 mx-auto mb-2" />
+                              <div className="text-sm font-medium text-gray-900">{new Date(internship.deadline).toLocaleDateString()}</div>
+                              <div className="text-xs text-gray-500">Deadline</div>
+                            </div>
+                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                              <Award className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                              <div className="text-sm font-medium text-gray-900">Certificate</div>
+                              <div className="text-xs text-gray-500">Provided</div>
+                            </div>
+                          </div>
+
+                          <div className="bg-white rounded-lg border p-4">
+                            <h4 className="font-semibold text-gray-900 mb-2">About this Internship</h4>
+                            <p className="text-gray-600">{internship.description}</p>
+                          </div>
+
+                          <div className="bg-white rounded-lg border p-4">
+                            <h4 className="font-semibold text-gray-900 mb-2">Requirements</h4>
+                            <ul className="space-y-2">
+                              {internship.requirements.map((req, idx) => (
+                                <li key={idx} className="flex items-center space-x-2">
+                                  <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                                  <span className="text-gray-600">{req}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <div className="bg-white rounded-lg border p-4">
+                            <h4 className="font-semibold text-gray-900 mb-2">Required Skills</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {internship.skills.map((skill, idx) => (
+                                <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">{skill}</span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="bg-white rounded-lg border p-4">
+                            <h4 className="font-semibold text-gray-900 mb-2">Office & Work Environment</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {getDetailImages(internship).map((img, i) => (
+                                <div key={i} className="rounded-lg overflow-hidden">
+                                  <img src={img} alt={`Office ${i + 1}`} className="w-full h-40 object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-6">
+                          <div className="bg-white rounded-lg border p-4">
+                            <h4 className="font-semibold text-gray-900 mb-4">Apply for this Internship</h4>
+                            <button
+                              onClick={() => handleApply(internship.id)}
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition-colors"
+                            >
+                              Apply Now
+                            </button>
+                            <button className="w-full mt-3 border border-gray-300 text-gray-700 py-2.5 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                              Save for Later
+                            </button>
+
+                            <div className="mt-6 pt-6 border-t">
+                              <h5 className="font-semibold text-gray-900 mb-2">Contact Information</h5>
+                              <div className="space-y-2 text-sm text-gray-600">
+                                <div className="flex items-center space-x-2"><Building className="w-4 h-4" /><span>{internship.company} Recruitment Team</span></div>
+                                <div className="flex items-center space-x-2"><Mail className="w-4 h-4" /><span>recruitment@example.gov.in</span></div>
+                                <div className="flex items-center space-x-2"><Phone className="w-4 h-4" /><span>+91-11-2430-XXXX</span></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-white rounded-lg border p-4">
+                            <h4 className="font-semibold text-gray-900 mb-3">Application Status</h4>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-600">Applications Received</span>
+                                <span className="font-medium">{internship.applications}</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${Math.min(100, (internship.applications / internship.maxApplications) * 100)}%` }} />
+                              </div>
+                              <div className="flex items-center justify-between text-xs text-gray-500">
+                                <span>0</span>
+                                <span>{internship.maxApplications} max</span>
+                              </div>
                             </div>
                           </div>
                         </div>

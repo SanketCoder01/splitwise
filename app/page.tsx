@@ -189,6 +189,13 @@ export default function HomePage() {
     setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
   }
 
+  const scrollToOverview = () => {
+    const el = document.getElementById('platform-overview')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <style jsx>{`
@@ -564,9 +571,9 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="mt-8"
           >
-            <Link href="/internships" className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105">
-              Find Your Internship
-            </Link>
+            <button onClick={scrollToOverview} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105">
+              See more
+            </button>
           </motion.div>
         </div>
 
@@ -595,7 +602,7 @@ export default function HomePage() {
       </section>
 
       {/* Scroll-Triggered Info Sections */}
-      <section className="py-12 bg-white">
+      <section id="platform-overview" className="py-12 bg-white">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -653,6 +660,8 @@ export default function HomePage() {
               textColor="#ffffff"
             />
           </div>
+
+          
 
           {/* Notifications and Placements Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">

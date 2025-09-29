@@ -27,17 +27,19 @@ import {
   X,
   ChevronDown,
   ChevronUp,
-  ExternalLink
+  ExternalLink,
+  Mail,
+  Phone
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-hot-toast'
+import { supabase } from '../../lib/supabase'
 
 export default function SchemesPage() {
   const [selectedScheme, setSelectedScheme] = useState<number | null>(null)
-  const [expandedScheme, setExpandedScheme] = useState<number | null>(null)
   const [showAIModal, setShowAIModal] = useState(false)
   const [showApplicationModal, setShowApplicationModal] = useState(false)
   const [selectedSchemeForApplication, setSelectedSchemeForApplication] = useState<any>(null)
@@ -61,7 +63,92 @@ export default function SchemesPage() {
     }, 2000)
   }, [])
 
-  const schemes = [
+  const [schemes, setSchemes] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchSchemes()
+  }, [])
+
+  const fetchSchemes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('internship_postings')
+        .select(`
+          *,
+          recruiter_profiles!internship_postings_recruiter_id_fkey (
+            company_name,
+            full_name
+          )
+        `)
+        .eq('status', 'approved')
+        .order('published_at', { ascending: false })
+
+      if (data) {
+        // Transform the data to match the expected format
+        const transformedSchemes = data.map((posting: any, index: number) => ({
+          id: posting.id,
+          title: posting.title,
+          department: posting.department,
+          slots: posting.max_applications ? `${posting.max_applications}+` : "Open",
+          icon: getIconForDepartment(posting.department),
+          color: getColorForDepartment(posting.department),
+          image: posting.poster_url || getDefaultImageForDepartment(posting.department),
+          description: posting.description,
+          duration: posting.duration,
+          stipend: posting.stipend,
+          eligibility: posting.education_level || "Varies",
+          features: posting.benefits || [],
+          locations: posting.location ? [posting.location] : ["Multiple Locations"],
+          applicationDeadline: posting.deadline ? new Date(posting.deadline).toLocaleDateString() : "Open",
+          benefits: posting.benefits || [],
+          company: posting.recruiter_profiles?.company_name || "Government Organization"
+        }))
+        setSchemes(transformedSchemes)
+      }
+    } catch (error) {
+      console.error('Error fetching schemes:', error)
+      // Fallback to mock data if Supabase fails
+      setSchemes(getMockSchemes())
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getIconForDepartment = (department: string) => {
+    const dept = department.toLowerCase()
+    if (dept.includes('it') || dept.includes('electronics')) return Cpu
+    if (dept.includes('education')) return Users
+    if (dept.includes('skill') || dept.includes('development')) return Target
+    if (dept.includes('research') || dept.includes('drdo') || dept.includes('isro')) return Award
+    if (dept.includes('finance') || dept.includes('banking')) return Shield
+    if (dept.includes('health') || dept.includes('medical')) return Heart
+    return Building
+  }
+
+  const getColorForDepartment = (department: string) => {
+    const dept = department.toLowerCase()
+    if (dept.includes('it') || dept.includes('electronics')) return "purple"
+    if (dept.includes('education')) return "blue"
+    if (dept.includes('skill') || dept.includes('development')) return "green"
+    if (dept.includes('research') || dept.includes('drdo') || dept.includes('isro')) return "red"
+    if (dept.includes('finance') || dept.includes('banking')) return "indigo"
+    if (dept.includes('health') || dept.includes('medical')) return "pink"
+    return "gray"
+  }
+
+  const getDefaultImageForDepartment = (department: string) => {
+    const dept = department.toLowerCase()
+    if (dept.includes('it') || dept.includes('electronics')) return "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop"
+    if (dept.includes('education')) return "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=400&fit=crop"
+    if (dept.includes('skill') || dept.includes('development')) return "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=400&fit=crop"
+    if (dept.includes('research') || dept.includes('drdo') || dept.includes('isro')) return "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop"
+    if (dept.includes('finance') || dept.includes('banking')) return "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=400&fit=crop"
+    if (dept.includes('health') || dept.includes('medical')) return "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop"
+    return "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=400&fit=crop"
+  }
+
+  const getMockSchemes = () => [
     {
       id: 1,
       title: "Government Internship Scheme",
@@ -76,7 +163,7 @@ export default function SchemesPage() {
       eligibility: "Graduate/Post-graduate in any discipline",
       features: [
         "Direct mentorship from senior government officials",
-        "Exposure to policy-making processes", 
+        "Exposure to policy-making processes",
         "Certificate from Ministry of Education",
         "Networking opportunities with civil servants",
         "Potential for permanent recruitment"
@@ -457,6 +544,7 @@ export default function SchemesPage() {
               className={`bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow ${
                 showAIMatching && scheme.isMatched ? 'ring-2 ring-purple-200 bg-purple-50/30' : ''
               }`}
+              id={`scheme-${scheme.id}`}
             >
               {/* Scheme Image */}
               <div className="relative h-48">
@@ -502,13 +590,13 @@ export default function SchemesPage() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => handleCheckEligibility(scheme)}
+                  <Link
+                    href={`/schemes/${scheme.id}`}
                     className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 transition-colors"
                   >
-                    <span>Check Eligibility</span>
+                    <span>Check Availability</span>
                     <ExternalLink className="w-4 h-4" />
-                  </button>
+                  </Link>
                   
                   {appliedSchemes.has(scheme.id) ? (
                     <div className="bg-green-100 text-green-800 px-6 py-2 rounded-lg font-medium flex items-center space-x-2">
@@ -527,64 +615,8 @@ export default function SchemesPage() {
                   )}
                 </div>
 
-                {/* Expanded Details */}
-                <AnimatePresence>
-                  {expandedScheme === scheme.id && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="mt-6 pt-6 border-t border-gray-200"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-3">Eligibility</h4>
-                          <p className="text-gray-600 mb-4">{scheme.eligibility}</p>
-                          
-                          <h4 className="font-semibold text-gray-900 mb-3">Features</h4>
-                          <ul className="space-y-2">
-                                                        {scheme.features.map((feature: string, idx: number) => (
-                              <li key={idx} className="flex items-center space-x-2">
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                                <span className="text-gray-600 text-sm">{feature}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-3">Locations</h4>
-                          <div className="flex flex-wrap gap-2 mb-4">
-                                                        {scheme.locations.map((location: string, idx: number) => (
-                              <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                {location}
-                              </span>
-                            ))}
-                          </div>
-                          
-                          <h4 className="font-semibold text-gray-900 mb-3">Benefits</h4>
-                          <ul className="space-y-2">
-                                                        {scheme.benefits.map((benefit: string, idx: number) => (
-                              <li key={idx} className="flex items-center space-x-2">
-                                <Award className="w-4 h-4 text-orange-600" />
-                                <span className="text-gray-600 text-sm">{benefit}</span>
-                              </li>
-                            ))}
-                          </ul>
-                          
-                          <div className="mt-4 p-3 bg-orange-50 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <Calendar className="w-4 h-4 text-orange-600" />
-                              <span className="text-sm font-medium text-orange-900">Application Deadline</span>
-                            </div>
-                            <p className="text-orange-800 font-semibold">{scheme.applicationDeadline}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+
+                
               </div>
             </motion.div>
           ))}

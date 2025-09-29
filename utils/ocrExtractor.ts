@@ -54,7 +54,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
 export async function extractTextFromImage(file: File): Promise<string> {
   // Use Tesseract.js for client-side OCR on images
   const { createWorker } = await import('tesseract.js')
-  const worker = await createWorker()
+  const worker = await createWorker('eng')
   try {
     const dataUrl: string = await new Promise((resolve, reject) => {
       const r = new FileReader()
@@ -62,12 +62,9 @@ export async function extractTextFromImage(file: File): Promise<string> {
       r.onerror = reject
       r.readAsDataURL(file)
     })
-    await worker.load()
-    await worker.loadLanguage('eng')
-    await worker.initialize('eng')
-    const { data } = await worker.recognize(dataUrl)
+    const { data: { text } } = await worker.recognize(dataUrl)
     await worker.terminate()
-    return data.text || ''
+    return text || ''
   } catch (err) {
     try { await worker.terminate() } catch {}
     throw err

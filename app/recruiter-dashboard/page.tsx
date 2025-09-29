@@ -15,6 +15,7 @@ import Image from 'next/image'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import RecruiterProfileCompletion from '../../components/RecruiterProfileCompletion'
+import InternshipPostingForm from '../../components/InternshipPostingForm'
 
 interface InternshipPosting {
   id: string
@@ -59,52 +60,118 @@ export default function RecruiterDashboard() {
     try {
       // Get recruiter data from session storage (set during login)
       const recruiterSessionData = sessionStorage.getItem('recruiter_data')
-      
+
       if (recruiterSessionData) {
         const sessionData = JSON.parse(recruiterSessionData)
-        
-        // Try to fetch from Supabase first
-        const { data: profileData, error } = await supabase
-          .from('recruiter_profiles')
-          .select('*')
-          .eq('email', sessionData.email || `hr@${sessionData.organization_id.toLowerCase()}.com`)
-          .single()
-        
-        if (profileData) {
-          // Use Supabase data if available
+
+        // Check if session data has completed profile (from dev mode)
+        if (sessionData.profile_completed) {
+          // Use session data directly if profile is completed
           const recruiterData: RecruiterProfile = {
-            id: profileData.id,
-            full_name: profileData.full_name,
-            company_name: profileData.company_name,
+            id: sessionData.id || 'temp-' + (sessionData.organization_id || 'unknown'),
+            full_name: sessionData.full_name || '',
+            company_name: sessionData.company_name || '',
             profile_image: undefined,
-            profile_completed: profileData.profile_completed || false,
-            profile_step: profileData.profile_step || 1,
-            approval_status: profileData.approval_status || 'pending',
-            email: profileData.email,
-            phone: profileData.phone
+            profile_completed: sessionData.profile_completed || false,
+            profile_step: sessionData.profile_step || 6,
+            approval_status: sessionData.approval_status || 'pending',
+            email: sessionData.email || `hr@${sessionData.organization_id?.toLowerCase() || 'company'}.com`,
+            phone: sessionData.phone || ''
           }
           setRecruiterData(recruiterData)
-        } else {
-          // Use session data as fallback and create initial profile
+
+          // Profile is completed - redirect to dashboard if currently on profile-steps
+          if (activeTab === 'profile-steps') {
+            setActiveTab('dashboard')
+          }
+          return
+        }
+
+        // Try to fetch from Supabase for incomplete profiles
+        try {
+          const { data: profileData, error } = await supabase
+            .from('recruiter_profiles')
+            .select('*')
+            .eq('email', sessionData.email || `hr@${sessionData.organization_id?.toLowerCase() || 'company'}.com`)
+            .single()
+
+          if (profileData && !error) {
+            // Use Supabase data if available
+            const recruiterData: RecruiterProfile = {
+              id: profileData.id,
+              full_name: profileData.full_name,
+              company_name: profileData.company_name,
+              profile_image: undefined,
+              profile_completed: profileData.profile_completed || false,
+              profile_step: profileData.profile_step || 1,
+              approval_status: profileData.approval_status || 'pending',
+              email: profileData.email,
+              phone: profileData.phone
+            }
+            setRecruiterData(recruiterData)
+
+            // If profile not completed, show profile steps
+            if (!profileData.profile_completed) {
+              setActiveTab('profile-steps')
+              setShowProfileSteps(true)
+            } else {
+              // Profile is completed - redirect to dashboard if currently on profile-steps
+              if (activeTab === 'profile-steps') {
+                setActiveTab('dashboard')
+              }
+            }
+          } else {
+            // Supabase failed, use session data as fallback
+            const initialData: RecruiterProfile = {
+              id: 'temp-' + (sessionData.organization_id || 'unknown'),
+              full_name: sessionData.full_name || '',
+              company_name: sessionData.company_name || '',
+              profile_image: undefined,
+              profile_completed: sessionData.profile_completed || false,
+              profile_step: sessionData.profile_step || 1,
+              approval_status: 'pending',
+              email: sessionData.email || `hr@${sessionData.organization_id?.toLowerCase() || 'company'}.com`,
+              phone: sessionData.phone || ''
+            }
+            setRecruiterData(initialData)
+
+            // If profile not completed, show profile steps
+            if (!sessionData.profile_completed) {
+              setActiveTab('profile-steps')
+              setShowProfileSteps(true)
+            } else {
+              // Profile is completed - redirect to dashboard if currently on profile-steps
+              if (activeTab === 'profile-steps') {
+                setActiveTab('dashboard')
+              }
+            }
+          }
+        } catch (supabaseError) {
+          console.warn('Supabase error, using session data:', supabaseError)
+          // Use session data as fallback
           const initialData: RecruiterProfile = {
-            id: 'temp-' + sessionData.organization_id,
-            full_name: '',
-            company_name: sessionData.organization_name || '',
+            id: 'temp-' + (sessionData.organization_id || 'unknown'),
+            full_name: sessionData.full_name || '',
+            company_name: sessionData.company_name || '',
             profile_image: undefined,
-            profile_completed: false,
-            profile_step: 1,
+            profile_completed: sessionData.profile_completed || false,
+            profile_step: sessionData.profile_step || 1,
             approval_status: 'pending',
-            email: sessionData.email || `hr@${sessionData.organization_id.toLowerCase()}.com`,
-            phone: ''
+            email: sessionData.email || `hr@${sessionData.organization_id?.toLowerCase() || 'company'}.com`,
+            phone: sessionData.phone || ''
           }
           setRecruiterData(initialData)
-        }
-        
-        // If profile not completed, show profile steps
-        const currentData = profileData || { profile_completed: false }
-        if (!currentData.profile_completed) {
-          setActiveTab('profile-steps')
-          setShowProfileSteps(true)
+
+          // If profile not completed, show profile steps
+          if (!sessionData.profile_completed) {
+            setActiveTab('profile-steps')
+            setShowProfileSteps(true)
+          } else {
+            // Profile is completed - redirect to dashboard if currently on profile-steps
+            if (activeTab === 'profile-steps') {
+              setActiveTab('dashboard')
+            }
+          }
         }
       } else {
         // No session data, redirect to login
@@ -407,17 +474,25 @@ export default function RecruiterDashboard() {
   )
 
   function renderDashboard() {
-    if (recruiterData?.approval_status === 'pending') {
+    // Show normal dashboard for all users who have completed profile
+    // Only show waiting message if profile is not completed
+    if (!recruiterData?.profile_completed) {
       return (
         <div className="space-y-6">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
             <div className="flex items-center space-x-3">
-              <Clock className="w-8 h-8 text-yellow-600" />
+              <AlertTriangle className="w-8 h-8 text-orange-600" />
               <div>
-                <h3 className="text-lg font-semibold text-yellow-900">Waiting for Government Approval</h3>
-                <p className="text-yellow-700 mt-1">
-                  Your profile has been submitted for verification. You'll be able to post internships once approved by government officials.
+                <h3 className="text-lg font-semibold text-orange-900">Complete Your Profile</h3>
+                <p className="text-orange-700 mt-1">
+                  Please complete your profile setup to unlock all dashboard features.
                 </p>
+                <button
+                  onClick={() => setActiveTab('profile-steps')}
+                  className="mt-3 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
+                >
+                  Complete Profile Now
+                </button>
               </div>
             </div>
           </div>
@@ -532,24 +607,112 @@ export default function RecruiterDashboard() {
   }
 
   function renderProfileSteps() {
-    return <RecruiterProfileCompletion recruiterData={recruiterData} onProfileUpdate={fetchRecruiterData} />
+    return (
+      <RecruiterProfileCompletion
+        recruiterData={recruiterData}
+        onProfileUpdate={fetchRecruiterData}
+        onProfileCompleted={() => {
+          // Profile completed - refresh data and switch to dashboard
+          fetchRecruiterData()
+          setActiveTab('dashboard')
+        }}
+      />
+    )
   }
 
   function renderProfile() {
+    // Fetch complete profile data from session storage or database
+    const [completeProfileData, setCompleteProfileData] = useState<any>(null)
+    const [loadingProfile, setLoadingProfile] = useState(true)
+
+    useEffect(() => {
+      const fetchCompleteProfile = async () => {
+        try {
+          // First try to get from session storage (saved during profile completion)
+          const sessionData = sessionStorage.getItem('recruiter_complete_profile')
+          if (sessionData) {
+            setCompleteProfileData(JSON.parse(sessionData))
+            setLoadingProfile(false)
+            return
+          }
+
+          // If not in session, try to fetch from database
+          if (recruiterData?.id && !recruiterData.id.startsWith('temp-')) {
+            try {
+              const { data, error } = await supabase
+                .from('recruiter_profiles')
+                .select('*')
+                .eq('id', recruiterData.id)
+                .single()
+
+              if (data && !error) {
+                setCompleteProfileData(data)
+              }
+            } catch (dbError) {
+              console.warn('Could not fetch complete profile from database:', dbError)
+            }
+          }
+
+          // If still no data, try to get basic info from session
+          const basicSessionData = sessionStorage.getItem('recruiter_data')
+          if (basicSessionData) {
+            const basicData = JSON.parse(basicSessionData)
+            setCompleteProfileData({
+              full_name: basicData.full_name || '',
+              company_name: basicData.company_name || '',
+              email: basicData.email || '',
+              phone: basicData.phone || '',
+              designation: basicData.designation || '',
+              employee_id: basicData.employee_id || '',
+              company_type: basicData.company_type || '',
+              industry: basicData.industry || '',
+              company_size: basicData.company_size || '',
+              website: basicData.website || '',
+              address_line1: basicData.address_line1 || '',
+              address_line2: basicData.address_line2 || '',
+              city: basicData.city || '',
+              state: basicData.state || '',
+              pincode: basicData.pincode || '',
+              internship_types: basicData.internship_types || [],
+              internship_alignment: basicData.internship_alignment || [],
+              preferred_skills: basicData.preferred_skills || '',
+              min_duration: basicData.min_duration || '',
+              max_duration: basicData.max_duration || '',
+              stipend_range: basicData.stipend_range || ''
+            })
+          }
+        } catch (error) {
+          console.error('Error fetching complete profile:', error)
+        } finally {
+          setLoadingProfile(false)
+        }
+      }
+
+      fetchCompleteProfile()
+    }, [recruiterData])
+
+    if (loadingProfile) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      )
+    }
+
     return (
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Profile Overview</h2>
-          <p className="text-gray-600">View and manage your recruiter profile information</p>
+          <p className="text-gray-600">View and manage your complete recruiter profile information</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center space-x-6 mb-6">
             <div className="relative">
               {recruiterData?.profile_image ? (
-                <img 
-                  src={recruiterData.profile_image} 
-                  alt="Profile" 
+                <img
+                  src={recruiterData.profile_image}
+                  alt="Profile"
                   className="w-20 h-20 rounded-full object-cover"
                 />
               ) : (
@@ -558,7 +721,7 @@ export default function RecruiterDashboard() {
                 </div>
               )}
               <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center ${
-                recruiterData?.approval_status === 'approved' ? 'bg-green-500' : 
+                recruiterData?.approval_status === 'approved' ? 'bg-green-500' :
                 recruiterData?.approval_status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
               }`}>
                 {recruiterData?.approval_status === 'approved' ? (
@@ -570,9 +733,9 @@ export default function RecruiterDashboard() {
             </div>
             <div>
               <h3 className="text-xl font-semibold text-gray-900">
-                {recruiterData?.full_name || 'Complete Profile'}
+                {completeProfileData?.full_name || recruiterData?.full_name || 'Complete Profile'}
               </h3>
-              <p className="text-gray-600">{recruiterData?.company_name || 'Add Company Details'}</p>
+              <p className="text-gray-600">{completeProfileData?.company_name || recruiterData?.company_name || 'Add Company Details'}</p>
               <p className="text-sm text-gray-500 mt-1">
                 Status: <span className={`font-medium ${
                   recruiterData?.approval_status === 'approved' ? 'text-green-600' :
@@ -585,58 +748,231 @@ export default function RecruiterDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Personal Details */}
             <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Contact Information</h4>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Mail className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">{recruiterData?.email || 'Not provided'}</span>
+              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                <User className="w-5 h-5 mr-2 text-blue-600" />
+                Personal Details
+              </h4>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Full Name:</span>
+                  <span className="font-medium">{completeProfileData?.full_name || 'Not provided'}</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">{recruiterData?.phone || 'Not provided'}</span>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Designation:</span>
+                  <span className="font-medium">{completeProfileData?.designation || 'Not provided'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Employee ID:</span>
+                  <span className="font-medium">{completeProfileData?.employee_id || 'Not provided'}</span>
                 </div>
               </div>
             </div>
 
+            {/* Company Details */}
             <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Profile Progress</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Completion</span>
-                  <span className="font-medium">{Math.round(((recruiterData?.profile_step || 1) / 6) * 100)}%</span>
+              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                <Building2 className="w-5 h-5 mr-2 text-green-600" />
+                Company Details
+              </h4>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Company Name:</span>
+                  <span className="font-medium">{completeProfileData?.company_name || 'Not provided'}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.round(((recruiterData?.profile_step || 1) / 6) * 100)}%` }}
-                  ></div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Industry:</span>
+                  <span className="font-medium">{completeProfileData?.industry || 'Not provided'}</span>
                 </div>
-                <p className="text-xs text-gray-500">
-                  Step {recruiterData?.profile_step || 1} of 6 completed
-                </p>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Company Size:</span>
+                  <span className="font-medium">{completeProfileData?.company_size || 'Not provided'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Type:</span>
+                  <span className="font-medium">{completeProfileData?.company_type || 'Not provided'}</span>
+                </div>
+                {completeProfileData?.website && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Website:</span>
+                    <a href={completeProfileData.website} target="_blank" rel="noopener noreferrer"
+                       className="font-medium text-blue-600 hover:text-blue-700">
+                      {completeProfileData.website}
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                <Phone className="w-5 h-5 mr-2 text-purple-600" />
+                Contact Information
+              </h4>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Email:</span>
+                  <span className="font-medium">{completeProfileData?.email || recruiterData?.email || 'Not provided'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Phone:</span>
+                  <span className="font-medium">{completeProfileData?.phone || recruiterData?.phone || 'Not provided'}</span>
+                </div>
+                {completeProfileData?.alternate_phone && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Alternate Phone:</span>
+                    <span className="font-medium">{completeProfileData.alternate_phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Address */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                <MapPin className="w-5 h-5 mr-2 text-red-600" />
+                Address
+              </h4>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-gray-600 block">Address:</span>
+                  <span className="font-medium">
+                    {completeProfileData?.address_line1 || 'Not provided'}
+                    {completeProfileData?.address_line2 && `, ${completeProfileData.address_line2}`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">City:</span>
+                  <span className="font-medium">{completeProfileData?.city || 'Not provided'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">State:</span>
+                  <span className="font-medium">{completeProfileData?.state || 'Not provided'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Pincode:</span>
+                  <span className="font-medium">{completeProfileData?.pincode || 'Not provided'}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {!recruiterData?.profile_completed && (
-            <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <AlertTriangle className="w-5 h-5 text-orange-600" />
-                <div>
-                  <h4 className="font-medium text-orange-900">Complete Your Profile</h4>
-                  <p className="text-sm text-orange-700">
-                    Complete all profile steps to unlock internship posting features.
+          {/* Internship Preferences */}
+          <div className="mt-8">
+            <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+              <Award className="w-5 h-5 mr-2 text-orange-600" />
+              Internship Preferences
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h5 className="font-medium text-gray-800 mb-2">Internship Types</h5>
+                <div className="flex flex-wrap gap-2">
+                  {completeProfileData?.internship_types?.length > 0 ? (
+                    completeProfileData.internship_types.map((type: string, index: number) => (
+                      <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                        {type}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 text-sm">None selected</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h5 className="font-medium text-gray-800 mb-2">Internship Alignment</h5>
+                <div className="flex flex-wrap gap-2">
+                  {completeProfileData?.internship_alignment?.length > 0 ? (
+                    completeProfileData.internship_alignment.map((alignment: string, index: number) => (
+                      <span key={index} className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                        {alignment}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 text-sm">None selected</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h5 className="font-medium text-gray-800 mb-2">Preferred Skills</h5>
+                <p className="text-gray-700 text-sm">{completeProfileData?.preferred_skills || 'Not specified'}</p>
+              </div>
+
+              <div>
+                <h5 className="font-medium text-gray-800 mb-2">Duration & Stipend</h5>
+                <div className="space-y-1 text-sm">
+                  <p className="text-gray-700">
+                    <span className="text-gray-600">Duration:</span> {completeProfileData?.min_duration || '0'} - {completeProfileData?.max_duration || '0'} months
+                  </p>
+                  <p className="text-gray-700">
+                    <span className="text-gray-600">Stipend:</span> {completeProfileData?.stipend_range || 'Not specified'}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setActiveTab('profile-steps')}
-                className="mt-3 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
-              >
-                Continue Profile Setup
-              </button>
+            </div>
+          </div>
+
+          {/* Documents Status */}
+          <div className="mt-8 pt-6 border-t">
+            <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+              <FileText className="w-5 h-5 mr-2 text-indigo-600" />
+              Documents Submitted
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="font-medium text-gray-900">Company Registration</p>
+                  <p className="text-sm text-gray-600">Submitted</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="font-medium text-gray-900">Authorization Letter</p>
+                  <p className="text-sm text-gray-600">Submitted</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="font-medium text-gray-900">ID Proof</p>
+                  <p className="text-sm text-gray-600">Submitted</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Approval Status */}
+          {recruiterData?.approval_status === 'pending' && (
+            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Clock className="w-5 h-5 text-yellow-600" />
+                <div>
+                  <h4 className="font-medium text-yellow-900">Waiting for Government Approval</h4>
+                  <p className="text-sm text-yellow-700">
+                    Your profile has been submitted for verification. You'll be able to post internships once approved by government officials.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {recruiterData?.approval_status === 'approved' && (
+            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <h4 className="font-medium text-green-900">Profile Approved!</h4>
+                  <p className="text-sm text-green-700">
+                    Your profile has been verified and approved. You can now post internships and access all dashboard features.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -646,35 +982,17 @@ export default function RecruiterDashboard() {
 
   function renderPostInternship() {
     return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Post New Internship</h2>
-          <p className="text-gray-600">Create a new internship posting for government approval</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border p-8">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Plus className="w-8 h-8 text-green-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Internship Posting Form</h3>
-            <p className="text-gray-600 mb-6">
-              This will include comprehensive internship posting form with all required fields.
-            </p>
-            <div className="bg-green-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-green-800">
-                <strong>Features:</strong> Internship details, requirements, benefits, poster upload, contact information, etc.
-              </p>
-            </div>
-            <button
-              onClick={() => toast('Internship posting form will be implemented')}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Create Posting Form
-            </button>
-          </div>
-        </div>
-      </div>
+      <InternshipPostingForm
+        recruiterData={recruiterData}
+        onPostingCreated={(posting) => {
+          // Refresh the internships list
+          fetchInternships()
+          // Switch to my postings tab
+          setActiveTab('my-postings')
+          toast.success('Internship posting created successfully!')
+        }}
+        onClose={() => setActiveTab('dashboard')}
+      />
     )
   }
 
