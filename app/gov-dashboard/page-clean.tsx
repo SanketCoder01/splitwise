@@ -359,13 +359,6 @@ export default function GovernmentDashboard() {
                 {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
               
-              <Image
-                src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                alt="Government of India"
-                width={40}
-                height={40}
-                className="object-contain"
-              />
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">PM Internship & Resume Verifier</h1>
                 <p className="text-xs text-gray-600">Ministry of Education - Government Portal</p>

@@ -147,13 +147,6 @@ export default function ResumeVerifierInfoPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <Image
-                src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                alt="Government of India"
-                width={40}
-                height={40}
-                className="h-10 w-10"
-              />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Government Internship Portal</h1>
                 <p className="text-sm text-gray-600">भारत सरकार | Government of India</p>
@@ -434,13 +427,6 @@ export default function ResumeVerifierInfoPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
-                <Image
-                  src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                  alt="Government of India"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8"
-                />
                 <div>
                   <h3 className="text-lg font-semibold">Government Internship Portal</h3>
                   <p className="text-sm text-gray-400">Ministry of Education</p>

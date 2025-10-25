@@ -392,13 +392,6 @@ export default function HomePage() {
           <div className="px-2 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center space-x-2 sm:space-x-6 flex-1">
-                <Image
-                  src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                  alt="Government of India"
-                  width={40}
-                  height={40}
-                  className="sm:w-[60px] sm:h-[60px] object-contain"
-                />
                 <div className="flex-1 min-w-0">
                   <h1 className="text-sm sm:text-2xl font-bold text-gray-900 truncate">Government Internship & Resume Verifier</h1>
                   <p className="text-xs sm:text-sm text-gray-600">MINISTRY OF EDUCATION</p>
@@ -992,13 +985,6 @@ export default function HomePage() {
               {/* Government Branding */}
               <div className="lg:col-span-2">
                 <div className="flex items-center space-x-3 mb-6">
-                  <Image
-                    src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                    alt="Government of India"
-                    width={40}
-                    height={40}
-                    className="object-contain"
-                  />
                   <div>
                     <h3 className="text-xl font-bold text-white">Government Internship Portal</h3>
                     <p className="text-sm text-gray-400">Ministry of Education</p>

@@ -51,14 +51,6 @@ export default function GovernmentHeader({
         <div className="px-4 py-4">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center space-x-4">
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                alt="Government of India"
-                width={60}
-                height={60}
-                className="object-contain"
-                style={{ filter: 'brightness(0)' }}
-              />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">PM Internship & Resume Verifier</h1>
                 <p className="text-sm text-gray-600">MINISTRY OF EDUCATION</p>

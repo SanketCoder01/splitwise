@@ -249,13 +249,6 @@ export default function StudentLoginPage() {
           <div className="px-4 py-3">
             <div className="flex items-center justify-center">
               <div className="flex items-center space-x-3">
-                <Image
-                  src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                  alt="Government of India"
-                  width={50}
-                  height={50}
-                  className="object-contain"
-                />
                 <div className="text-center">
                   <h1 className="text-xl font-bold text-gray-900">PM Internship & Resume Verifier</h1>
                   <p className="text-xs text-gray-600">MINISTRY OF EDUCATION</p>

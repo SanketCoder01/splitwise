@@ -177,13 +177,6 @@ export default function SupportPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Image
-                src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                alt="Government of India"
-                width={60}
-                height={60}
-                className="object-contain"
-              />
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">Government Internship & Resume Verifier</h1>
                 <p className="text-sm text-gray-600">MINISTRY OF EDUCATION</p>

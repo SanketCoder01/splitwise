@@ -497,13 +497,6 @@ export default function StudentDashboard() {
           <div className="bg-white rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Image
-                  src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                  alt="Government of India"
-                  width={80}
-                  height={80}
-                  className="object-contain"
-                />
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     PM Internship Portal
@@ -1644,13 +1637,6 @@ export default function StudentDashboard() {
                 {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
               
-              <Image
-                src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                alt="Government of India"
-                width={60}
-                height={60}
-                className="object-contain"
-              />
               <div className="flex-1">
                 <h1 className="text-xl font-semibold text-gray-900">PM Internship & Resume Verifier</h1>
                 <p className="text-sm text-gray-600">MINISTRY OF EDUCATION</p>
