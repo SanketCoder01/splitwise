@@ -179,44 +179,71 @@ export default function RecruiterProfileCompletion({ recruiterData, onProfileUpd
         }
       }
 
-      // Save to Supabase with fallback for different table names and columns
-      let saveError = null
-
-      // Create a minimal profile data object with only essential fields
-      const minimalProfileData = {
-        id: recruiterData?.id?.startsWith('temp-') ? undefined : recruiterData?.id,
-        full_name: formData.full_name,
-        company_name: formData.company_name,
-        email: formData.email,
-        profile_step: currentStep === 6 ? 6 : currentStep + 1,
-        profile_completed: currentStep === 6,
-        updated_at: new Date().toISOString()
+      // Set approval status to pending when profile is completed
+      if (currentStep === 6) {
+        profileData.approval_status = 'pending'
+        profileData.profile_completed = true
       }
+
+      // Save complete profile data to Supabase
+      let saveError = null
+      let savedData = null
+
+      console.log('💾 Saving recruiter profile to Supabase...', {
+        step: currentStep,
+        profile_completed: currentStep === 6,
+        approval_status: currentStep === 6 ? 'pending' : profileData.approval_status
+      })
 
       try {
-        // Try recruiter_profiles first with minimal data
-        const { error } = await supabase
-          .from('recruiter_profiles')
-          .upsert(minimalProfileData)
+        // Check if we need to insert or update
+        const recruiterId = recruiterData?.id && !recruiterData.id.startsWith('temp-') 
+          ? recruiterData.id 
+          : undefined
 
-        saveError = error
-      } catch (err) {
-        console.warn('recruiter_profiles table not found, trying recruiters table:', err)
-        saveError = err
-      }
-
-      // If recruiter_profiles failed, try recruiters table
-      if (saveError) {
-        try {
-          const { error } = await supabase
-            .from('recruiters')
-            .upsert(minimalProfileData)
+        if (recruiterId) {
+          // Update existing profile
+          const { data, error } = await supabase
+            .from('recruiter_profiles')
+            .update(profileData)
+            .eq('id', recruiterId)
+            .select()
+            .single()
 
           saveError = error
-        } catch (err) {
-          console.warn('recruiters table also failed:', err)
-          saveError = err
+          savedData = data
+        } else {
+          // Insert new profile
+          const { data, error } = await supabase
+            .from('recruiter_profiles')
+            .insert({
+              ...profileData,
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single()
+
+          saveError = error
+          savedData = data
+
+          // Update recruiter data with new ID
+          if (data && !saveError) {
+            const sessionData = sessionStorage.getItem('recruiter_data')
+            if (sessionData) {
+              const parsedData = JSON.parse(sessionData)
+              parsedData.id = data.id
+              sessionStorage.setItem('recruiter_data', JSON.stringify(parsedData))
+            }
+          }
         }
+
+        if (!saveError && savedData) {
+          console.log('✅ Profile saved successfully to Supabase:', savedData)
+          toast.success('Profile data saved successfully!')
+        }
+      } catch (err) {
+        console.error('❌ Supabase error:', err)
+        saveError = err
       }
 
       if (saveError) {

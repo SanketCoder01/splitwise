@@ -7,7 +7,8 @@ import {
   Briefcase, MessageSquare, FileCheck, Edit, Save, Plus, Download,
   Users, Shield, BarChart3, CheckCircle, Clock, AlertCircle,
   Building2, Search, Filter, Eye, TrendingUp,
-  Database, Zap, Globe, Lock, UserCheck, BookOpen
+  Database, Zap, Globe, Lock, UserCheck, BookOpen,
+  Calendar, Phone, Mail, MapPin
 } from 'lucide-react'
 import Image from 'next/image'
 import { useAuth } from '../../contexts/AuthContext'
@@ -29,6 +30,11 @@ export default function GovernmentDashboard() {
   const [grievances, setGrievances] = useState<any[]>([])
   const [pendingRecruiterProfiles, setPendingRecruiterProfiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedProfile, setSelectedProfile] = useState<any>(null)
+  // State for posting reviews module
+  const [pendingPostings, setPendingPostings] = useState<any[]>([])
+  const [selectedPosting, setSelectedPosting] = useState<any>(null)
+  const [postingsLoading, setPostingsLoading] = useState(true)
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: BarChart3 },
@@ -68,6 +74,13 @@ export default function GovernmentDashboard() {
       // Cleanup subscriptions will be handled by Supabase
     }
   }, [user])
+
+  // Fetch pending postings when posting-reviews tab is active
+  useEffect(() => {
+    if (activeTab === 'posting-reviews' && user) {
+      fetchPendingPostings()
+    }
+  }, [activeTab, user])
 
   const fetchUserData = async () => {
     try {
@@ -112,14 +125,38 @@ export default function GovernmentDashboard() {
         .select('*', { count: 'exact', head: true })
         .eq('verification_status', 'verified')
 
-      // Get pending recruiter profiles
+      // Get pending recruiter profiles (with completed profiles only)
       let pendingRecruiters = 0
+      let approvedToday = 0
+      let rejectedToday = 0
       try {
-        const { count } = await supabase
+        // Count pending
+        const { count: pendingCount } = await supabase
           .from('recruiter_profiles')
           .select('*', { count: 'exact', head: true })
           .eq('approval_status', 'pending')
-        pendingRecruiters = count || 0
+          .eq('profile_completed', true)
+        pendingRecruiters = pendingCount || 0
+
+        // Count approved today
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const { count: approvedCount } = await supabase
+          .from('recruiter_profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('approval_status', 'approved')
+          .gte('approved_at', today.toISOString())
+        approvedToday = approvedCount || 0
+
+        // Count rejected today
+        const { count: rejectedCount } = await supabase
+          .from('recruiter_profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('approval_status', 'rejected')
+          .gte('reviewed_at', today.toISOString())
+        rejectedToday = rejectedCount || 0
+
+        console.log('📊 Recruiter Stats:', { pendingRecruiters, approvedToday, rejectedToday })
       } catch (err) {
         console.warn('Could not fetch recruiter stats:', err)
       }
@@ -129,7 +166,9 @@ export default function GovernmentDashboard() {
         pendingDocs: pendingDocs || 0,
         openGrievances: openGrievances || 0,
         verifiedDocs: verifiedDocs || 0,
-        pendingRecruiters: pendingRecruiters
+        pendingRecruiters: pendingRecruiters,
+        approvedToday: approvedToday,
+        rejectedToday: rejectedToday
       })
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -174,34 +213,36 @@ export default function GovernmentDashboard() {
 
   const fetchPendingRecruiterProfiles = async () => {
     try {
-      // Try recruiter_profiles table with fallback
-      let fetchError = null
-      let data = null
+      console.log('🔍 Fetching pending recruiter profiles...')
+      
+      // Fetch all recruiter profiles with pending status AND completed profile
+      const { data, error } = await supabase
+        .from('recruiter_profiles')
+        .select('*')
+        .eq('approval_status', 'pending')
+        .eq('profile_completed', true)
+        .order('created_at', { ascending: false })
 
-      try {
-        const result = await supabase
-          .from('recruiter_profiles')
-          .select('*')
-          .eq('approval_status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(20)
-
-        data = result.data
-        fetchError = result.error
-      } catch (err) {
-        console.warn('recruiter_profiles table not found, continuing in dev mode:', err)
-        fetchError = null
-        data = [] // Empty array for dev mode
+      if (error) {
+        console.error('❌ Error fetching recruiter profiles:', error)
+        toast.error('Could not load recruiter profiles. Check console for details.')
+        setPendingRecruiterProfiles([])
+        return
       }
 
-      if (data && !fetchError) {
-        setPendingRecruiterProfiles(data)
-      } else if (!fetchError) {
-        // Dev mode - show empty list
-        setPendingRecruiterProfiles([])
+      console.log(`✅ Found ${data?.length || 0} pending recruiter profiles:`, data)
+      setPendingRecruiterProfiles(data || [])
+      
+      if (!data || data.length === 0) {
+        console.log('ℹ️ No pending recruiter profiles found. Make sure:')
+        console.log('  1. Recruiter has completed their profile (profile_completed = true)')
+        console.log('  2. Approval status is "pending"')
+        console.log('  3. SQL script was run to create the table')
       }
     } catch (error) {
-      console.error('Error fetching pending recruiter profiles:', error)
+      console.error('❌ Exception fetching pending recruiter profiles:', error)
+      toast.error('Error loading recruiter data')
+      setPendingRecruiterProfiles([])
     }
   }
 
@@ -331,6 +372,90 @@ export default function GovernmentDashboard() {
       }
     } catch (error) {
       console.error('Error updating grievance:', error)
+    }
+  }
+
+  const fetchPendingPostings = async () => {
+    try {
+      // Try internship_postings table with fallback
+      let fetchError = null
+      let data = null
+
+      try {
+        const result = await supabase
+          .from('internship_postings')
+          .select(`
+            *,
+            recruiter_profiles!internship_postings_recruiter_id_fkey (
+              company_name,
+              full_name,
+              email
+            )
+          `)
+          .eq('status', 'submitted')
+          .order('submitted_at', { ascending: false })
+
+        data = result.data
+        fetchError = result.error
+      } catch (err) {
+        console.warn('internship_postings table not found, continuing in dev mode:', err)
+        fetchError = null
+        data = [] // Empty array for dev mode
+      }
+
+      if (data && !fetchError) {
+        setPendingPostings(data)
+      } else if (!fetchError) {
+        // Dev mode - show empty list
+        setPendingPostings([])
+      }
+    } catch (error) {
+      console.error('Error fetching pending postings:', error)
+    } finally {
+      setPostingsLoading(false)
+    }
+  }
+
+  const reviewPosting = async (postingId: string, status: 'approved' | 'rejected', feedback?: string) => {
+    try {
+      const updateData: any = {
+        status,
+        reviewed_by: user?.id,
+        reviewed_at: new Date().toISOString()
+      }
+
+      if (status === 'approved') {
+        updateData.published_at = new Date().toISOString()
+      } else {
+        updateData.rejection_reason = feedback
+      }
+
+      // Try internship_postings table with fallback
+      let updateError = null
+
+      try {
+        const { error } = await supabase
+          .from('internship_postings')
+          .update(updateData)
+          .eq('id', postingId)
+
+        updateError = error
+      } catch (err) {
+        console.warn('internship_postings table not found, continuing in dev mode:', err)
+        updateError = null // Don't throw error in dev mode
+      }
+
+      if (!updateError) {
+        fetchPendingPostings()
+        setSelectedPosting(null)
+        toast.success(`Posting ${status} successfully!`)
+      } else {
+        console.error('Error reviewing posting:', updateError)
+        toast.error('Failed to update posting status')
+      }
+    } catch (error) {
+      console.error('Error reviewing posting:', error)
+      toast.error('Failed to update posting status')
     }
   }
 
@@ -1009,10 +1134,8 @@ export default function GovernmentDashboard() {
     </div>
   )
 
-  // 2. Recruiter Approvals Module
+  // 2. Recruiter Approvals Module - Enhanced with Beautiful UI
   const renderRecruiterApprovals = () => {
-    const [selectedProfile, setSelectedProfile] = useState<any>(null)
-
     const reviewRecruiterProfile = async (profileId: string, status: 'approved' | 'rejected', feedback?: string) => {
       try {
         const updateData: any = {
@@ -1023,32 +1146,33 @@ export default function GovernmentDashboard() {
 
         if (status === 'approved') {
           updateData.approved_at = new Date().toISOString()
+          updateData.approved_by = user?.id
         } else {
           updateData.rejection_reason = feedback
         }
 
-        // Try recruiter_profiles table with fallback
-        let updateError = null
+        const { error } = await supabase
+          .from('recruiter_profiles')
+          .update(updateData)
+          .eq('id', profileId)
 
-        try {
-          const { error } = await supabase
-            .from('recruiter_profiles')
-            .update(updateData)
-            .eq('id', profileId)
-
-          updateError = error
-        } catch (err) {
-          console.warn('recruiter_profiles table not found, continuing in dev mode:', err)
-          updateError = null // Don't throw error in dev mode
-        }
-
-        if (!updateError) {
+        if (!error) {
           fetchPendingRecruiterProfiles()
           fetchStats()
           setSelectedProfile(null)
-          toast.success(`Recruiter profile ${status} successfully!`)
+          
+          if (status === 'approved') {
+            toast.success('✅ Recruiter approved! They will be notified in real-time.', {
+              duration: 4000,
+              icon: '🎉'
+            })
+          } else {
+            toast.success('❌ Recruiter rejected. They will be logged out automatically.', {
+              duration: 4000
+            })
+          }
         } else {
-          console.error('Error reviewing recruiter profile:', updateError)
+          console.error('Error reviewing recruiter profile:', error)
           toast.error('Failed to update profile status')
         }
       } catch (error) {
@@ -1060,85 +1184,213 @@ export default function GovernmentDashboard() {
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       )
     }
 
     return (
-      <div className="space-y-6">
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-6">
-            <UserCheck className="w-8 h-8 text-blue-600" />
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Recruiter Profile Approvals</h2>
-              <p className="text-gray-600">Review and approve recruiter applications for internship posting access</p>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-6"
+      >
+        {/* Beautiful Header with Gradient */}
+        <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 rounded-2xl shadow-xl p-8 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="bg-white/20 p-4 rounded-xl backdrop-blur-sm">
+                <UserCheck className="w-10 h-10" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Recruiter Approvals</h2>
+                <p className="text-blue-100 text-lg">Review and manage recruiter applications with real-time updates</p>
+              </div>
+            </div>
+            <div className="bg-white/20 backdrop-blur-sm px-6 py-3 rounded-xl">
+              <p className="text-sm font-medium">Real-Time Status</p>
+              <div className="flex items-center space-x-2 mt-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-lg font-bold">Active</span>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-yellow-50 p-4 rounded-lg text-center">
-              <Clock className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
-              <p className="text-sm text-yellow-800">Pending Review</p>
-              <p className="text-xl font-bold text-yellow-600">{pendingRecruiterProfiles.length}</p>
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <motion.div 
+            whileHover={{ scale: 1.05, translateY: -5 }}
+            className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-2xl shadow-lg border-2 border-yellow-200"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-yellow-500 p-3 rounded-xl shadow-md">
+                <Clock className="w-8 h-8 text-white" />
+              </div>
+              <span className="text-3xl font-bold text-yellow-700">{pendingRecruiterProfiles.length}</span>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg text-center">
-              <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <p className="text-sm text-green-800">Approved Today</p>
-              <p className="text-xl font-bold text-green-600">5</p>
+            <h3 className="font-semibold text-yellow-900 text-lg">Pending Review</h3>
+            <p className="text-sm text-yellow-700 mt-1">Awaiting approval</p>
+          </motion.div>
+
+          <motion.div 
+            whileHover={{ scale: 1.05, translateY: -5 }}
+            className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-2xl shadow-lg border-2 border-green-200"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-green-500 p-3 rounded-xl shadow-md">
+                <CheckCircle className="w-8 h-8 text-white" />
+              </div>
+              <span className="text-3xl font-bold text-green-700">
+                {stats.approvedToday || 0}
+              </span>
             </div>
-            <div className="bg-red-50 p-4 rounded-lg text-center">
-              <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
-              <p className="text-sm text-red-800">Rejected</p>
-              <p className="text-xl font-bold text-red-600">2</p>
+            <h3 className="font-semibold text-green-900 text-lg">Approved Today</h3>
+            <p className="text-sm text-green-700 mt-1">Successfully verified</p>
+          </motion.div>
+
+          <motion.div 
+            whileHover={{ scale: 1.05, translateY: -5 }}
+            className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl shadow-lg border-2 border-red-200"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-red-500 p-3 rounded-xl shadow-md">
+                <AlertCircle className="w-8 h-8 text-white" />
+              </div>
+              <span className="text-3xl font-bold text-red-700">{stats.rejectedToday || 0}</span>
             </div>
-            <div className="bg-blue-50 p-4 rounded-lg text-center">
-              <TrendingUp className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <p className="text-sm text-blue-800">Approval Rate</p>
-              <p className="text-xl font-bold text-blue-600">71%</p>
+            <h3 className="font-semibold text-red-900 text-lg">Rejected Today</h3>
+            <p className="text-sm text-red-700 mt-1">Did not meet criteria</p>
+          </motion.div>
+
+          <motion.div 
+            whileHover={{ scale: 1.05, translateY: -5 }}
+            className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl shadow-lg border-2 border-blue-200"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-blue-500 p-3 rounded-xl shadow-md">
+                <TrendingUp className="w-8 h-8 text-white" />
+              </div>
+              <span className="text-3xl font-bold text-blue-700">
+                {stats.pendingRecruiters || stats.approvedToday ? 
+                  Math.round((stats.approvedToday || 0) / ((stats.approvedToday || 0) + (stats.rejectedToday || 0) + (stats.pendingRecruiters || 0)) * 100) || 0 
+                  : 0}%
+              </span>
             </div>
+            <h3 className="font-semibold text-blue-900 text-lg">Approval Rate</h3>
+            <p className="text-sm text-blue-700 mt-1">Overall success rate</p>
+          </motion.div>
+        </div>
+
+        {/* Recruiter Profiles List */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
+            <h3 className="text-2xl font-bold text-gray-900">Pending Recruiter Applications</h3>
+            <p className="text-gray-600 mt-1">Click on any profile to view complete details and approve/reject</p>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="font-semibold">Pending Approvals</h3>
+          <div className="p-6">
             {pendingRecruiterProfiles.length > 0 ? (
-              pendingRecruiterProfiles.map((profile) => (
-                <div key={profile.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{profile.full_name || 'Name not provided'}</h4>
-                      <p className="text-sm text-gray-600">
-                        {profile.company_name || 'Company not provided'} • {profile.email || 'Email not provided'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Applied: {new Date(profile.created_at).toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Profile completed on: {new Date(profile.updated_at || profile.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setSelectedProfile(profile)}
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+              <div className="space-y-4">
+                {pendingRecruiterProfiles.map((profile, index) => (
+                  <motion.div
+                    key={profile.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-gradient-to-r from-white to-gray-50 border-2 border-gray-200 hover:border-blue-400 rounded-xl p-6 transition-all duration-300 cursor-pointer shadow-md hover:shadow-xl"
+                    onClick={() => setSelectedProfile(profile)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-4 flex-1">
+                        {/* Profile Avatar */}
+                        <div className="relative">
+                          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                            {profile.full_name?.charAt(0) || profile.company_name?.charAt(0) || 'R'}
+                          </div>
+                          <div className="absolute -bottom-1 -right-1 bg-yellow-500 rounded-full p-1">
+                            <Clock className="w-3 h-3 text-white" />
+                          </div>
+                        </div>
+
+                        {/* Profile Details */}
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h4 className="text-xl font-bold text-gray-900">
+                              {profile.full_name || 'Name not provided'}
+                            </h4>
+                            <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
+                              Pending
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div className="flex items-center space-x-2 text-gray-700">
+                              <Building2 className="w-4 h-4 text-blue-600" />
+                              <span className="font-medium">{profile.company_name || 'Company not provided'}</span>
+                            </div>
+                            <div className="flex items-center space-x-2 text-gray-700">
+                              <Mail className="w-4 h-4 text-green-600" />
+                              <span>{profile.email || 'Email not provided'}</span>
+                            </div>
+                            <div className="flex items-center space-x-2 text-gray-700">
+                              <Phone className="w-4 h-4 text-purple-600" />
+                              <span>{profile.phone || 'Phone not provided'}</span>
+                            </div>
+                            <div className="flex items-center space-x-2 text-gray-700">
+                              <Calendar className="w-4 h-4 text-orange-600" />
+                              <span>Applied: {new Date(profile.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            </div>
+                          </div>
+
+                          {/* Internship Types Tags */}
+                          {profile.internship_types && profile.internship_types.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {profile.internship_types.slice(0, 3).map((type: string, idx: number) => (
+                                <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg">
+                                  {type}
+                                </span>
+                              ))}
+                              {profile.internship_types.length > 3 && (
+                                <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg">
+                                  +{profile.internship_types.length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="ml-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg flex items-center space-x-2 font-semibold"
                       >
-                        <Eye className="w-4 h-4 inline mr-1" />
-                        Review
-                      </button>
+                        <Eye className="w-5 h-5" />
+                        <span>Review</span>
+                      </motion.button>
                     </div>
-                  </div>
-                </div>
-              ))
+                  </motion.div>
+                ))}
+              </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <UserCheck className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No pending recruiter approvals at this time.</p>
+              <div className="text-center py-16">
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center">
+                  <UserCheck className="w-12 h-12 text-blue-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">No Pending Approvals</h3>
+                <p className="text-gray-600 text-lg">All recruiter applications have been reviewed.</p>
+                <p className="text-sm text-gray-500 mt-4">
+                  ✨ New applications will appear here automatically in real-time.
+                </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Review Modal */}
+        {/* Enhanced Review Modal */}
         <AnimatePresence>
           {selectedProfile && (
             <motion.div
@@ -1166,54 +1418,161 @@ export default function GovernmentDashboard() {
                 </div>
 
                 <div className="p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-4">Profile Details</h4>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Full Name</label>
-                          <p className="text-gray-900">{selectedProfile.full_name || 'Not provided'}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Company Name</label>
-                          <p className="text-gray-900">{selectedProfile.company_name || 'Not provided'}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Email</label>
-                          <p className="text-gray-900">{selectedProfile.email || 'Not provided'}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Phone</label>
-                          <p className="text-gray-900">{selectedProfile.phone || 'Not provided'}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Designation</label>
-                          <p className="text-gray-900">{selectedProfile.designation || 'Not provided'}</p>
-                        </div>
+                  {/* Personal Information */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">👤 Personal Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-gray-600">Full Name</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.full_name || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-gray-600">Designation</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.designation || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-gray-600">Employee ID</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.employee_id || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-gray-600">Email</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.email || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-gray-600">Phone</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.phone || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-gray-600">Alternate Phone</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.alternate_phone || 'Not provided'}</p>
                       </div>
                     </div>
+                  </div>
 
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-4">Internship Preferences</h4>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Internship Types</label>
-                          <p className="text-gray-900">{selectedProfile.internship_types?.join(', ') || 'Not specified'}</p>
+                  {/* Company Information */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">🏢 Company Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-blue-700">Company Name</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.company_name || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-blue-700">Company Type</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.company_type || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-blue-700">Industry</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.industry || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-blue-700">Company Size</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.company_size || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg col-span-2">
+                        <label className="text-xs font-medium text-blue-700">Website</label>
+                        <p className="text-sm font-semibold text-blue-600 mt-1">
+                          <a href={selectedProfile.website} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                            {selectedProfile.website || 'Not provided'}
+                          </a>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address Information */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">📍 Address Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-green-50 p-3 rounded-lg col-span-2">
+                        <label className="text-xs font-medium text-green-700">Address Line 1</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.address_line1 || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg col-span-2">
+                        <label className="text-xs font-medium text-green-700">Address Line 2</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.address_line2 || 'N/A'}</p>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-green-700">City</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.city || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-green-700">State</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.state || 'Not provided'}</p>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-green-700">Pincode</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.pincode || 'Not provided'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Internship Preferences */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">💼 Internship Preferences</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-purple-50 p-3 rounded-lg col-span-2">
+                        <label className="text-xs font-medium text-purple-700">Internship Types</label>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedProfile.internship_types && selectedProfile.internship_types.length > 0 ? (
+                            selectedProfile.internship_types.map((type: string, idx: number) => (
+                              <span key={idx} className="px-3 py-1 bg-purple-200 text-purple-900 text-xs font-medium rounded-full">
+                                {type}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-sm text-gray-500">Not specified</span>
+                          )}
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Preferred Skills</label>
-                          <p className="text-gray-900">{selectedProfile.preferred_skills || 'Not specified'}</p>
+                      </div>
+                      <div className="bg-purple-50 p-3 rounded-lg col-span-2">
+                        <label className="text-xs font-medium text-purple-700">Internship Alignment</label>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedProfile.internship_alignment && selectedProfile.internship_alignment.length > 0 ? (
+                            selectedProfile.internship_alignment.map((alignment: string, idx: number) => (
+                              <span key={idx} className="px-3 py-1 bg-indigo-200 text-indigo-900 text-xs font-medium rounded-full">
+                                {alignment}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-sm text-gray-500">Not specified</span>
+                          )}
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Duration Range</label>
-                          <p className="text-gray-900">
-                            {selectedProfile.min_duration}-{selectedProfile.max_duration} months
-                          </p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Stipend Range</label>
-                          <p className="text-gray-900">{selectedProfile.stipend_range || 'Not specified'}</p>
-                        </div>
+                      </div>
+                      <div className="bg-purple-50 p-3 rounded-lg col-span-2">
+                        <label className="text-xs font-medium text-purple-700">Preferred Skills</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{selectedProfile.preferred_skills || 'Not specified'}</p>
+                      </div>
+                      <div className="bg-purple-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-purple-700">Duration Range</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">
+                          {selectedProfile.min_duration || 'N/A'} - {selectedProfile.max_duration || 'N/A'} months
+                        </p>
+                      </div>
+                      <div className="bg-purple-50 p-3 rounded-lg">
+                        <label className="text-xs font-medium text-purple-700">Stipend Range</label>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">₹{selectedProfile.stipend_range || 'Not specified'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Application Status */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">📊 Application Status</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-yellow-50 p-3 rounded-lg text-center">
+                        <label className="text-xs font-medium text-yellow-700">Profile Status</label>
+                        <p className="text-sm font-bold text-yellow-900 mt-1 capitalize">{selectedProfile.approval_status || 'pending'}</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg text-center">
+                        <label className="text-xs font-medium text-blue-700">Profile Completed</label>
+                        <p className="text-sm font-bold text-blue-900 mt-1">{selectedProfile.profile_completed ? 'Yes ✓' : 'No ✗'}</p>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg text-center">
+                        <label className="text-xs font-medium text-green-700">Applied On</label>
+                        <p className="text-sm font-bold text-green-900 mt-1">
+                          {new Date(selectedProfile.created_at).toLocaleDateString('en-IN')}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1242,105 +1601,13 @@ export default function GovernmentDashboard() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
     )
   }
 
   // 4. Posting Reviews Module
   const renderPostingReviews = () => {
-    const [pendingPostings, setPendingPostings] = useState<any[]>([])
-    const [selectedPosting, setSelectedPosting] = useState<any>(null)
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-      fetchPendingPostings()
-    }, [])
-
-    const fetchPendingPostings = async () => {
-      try {
-        // Try internship_postings table with fallback
-        let fetchError = null
-        let data = null
-
-        try {
-          const result = await supabase
-            .from('internship_postings')
-            .select(`
-              *,
-              recruiter_profiles!internship_postings_recruiter_id_fkey (
-                company_name,
-                full_name,
-                email
-              )
-            `)
-            .eq('status', 'submitted')
-            .order('submitted_at', { ascending: false })
-
-          data = result.data
-          fetchError = result.error
-        } catch (err) {
-          console.warn('internship_postings table not found, continuing in dev mode:', err)
-          fetchError = null
-          data = [] // Empty array for dev mode
-        }
-
-        if (data && !fetchError) {
-          setPendingPostings(data)
-        } else if (!fetchError) {
-          // Dev mode - show empty list
-          setPendingPostings([])
-        }
-      } catch (error) {
-        console.error('Error fetching pending postings:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    const reviewPosting = async (postingId: string, status: 'approved' | 'rejected', feedback?: string) => {
-      try {
-        const updateData: any = {
-          status,
-          reviewed_by: user?.id,
-          reviewed_at: new Date().toISOString()
-        }
-
-        if (status === 'approved') {
-          updateData.published_at = new Date().toISOString()
-        } else {
-          updateData.rejection_reason = feedback
-        }
-
-        // Try internship_postings table with fallback
-        let updateError = null
-
-        try {
-          const { error } = await supabase
-            .from('internship_postings')
-            .update(updateData)
-            .eq('id', postingId)
-
-          updateError = error
-        } catch (err) {
-          console.warn('internship_postings table not found, continuing in dev mode:', err)
-          updateError = null // Don't throw error in dev mode
-        }
-
-        if (!updateError) {
-          fetchPendingPostings()
-          setSelectedPosting(null)
-          toast.success(`Posting ${status} successfully!`)
-        } else {
-          console.error('Error reviewing posting:', updateError)
-          toast.error('Failed to update posting status')
-        }
-      } catch (error) {
-        console.error('Error reviewing posting:', error)
-        toast.error('Failed to update posting status')
-      }
-    }
-
-    if (loading) {
+    if (postingsLoading) {
       return (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1622,81 +1889,173 @@ export default function GovernmentDashboard() {
   const currentUser = user || mockUser
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
-              >
-                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-orange-50">
+      {/* Government Official Header - Top Bar */}
+      <div className="bg-gradient-to-r from-orange-500 via-white to-green-500 h-2"></div>
+      
+      {/* Main Government Header */}
+      <header className="bg-white shadow-lg border-b-4 border-orange-500">
+        {/* Top Section without Emblem */}
+        <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white">
+          <div className="w-full px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-wide">Government of India | भारत सरकार</h1>
+                  <p className="text-sm text-blue-200 mt-1">PM Internship Portal - Administrative Dashboard</p>
+                  <p className="text-xs text-blue-300">Ministry of Education | शिक्षा मंत्रालय</p>
+                </div>
+              </div>
               
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">PM Internship & Resume Verifier</h1>
-                <p className="text-xs text-gray-600">Ministry of Education - Government Portal</p>
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <p className="text-sm font-medium">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                  <p className="text-xs text-blue-200">National Capital Territory of Delhi</p>
+                </div>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-4">
-              <button className="p-2 text-gray-400 hover:text-gray-600">
-                <Bell className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => user ? signOut() : console.log('Mock user - no sign out')}
-                className="p-2 text-gray-400 hover:text-gray-600"
-                title="Sign Out"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
+          </div>
+        </div>
+
+        {/* Navigation Bar */}
+        <div className="bg-white border-b">
+          <div className="w-full px-6 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="lg:hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 shadow-md"
+                >
+                  {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+                
+                {/* Breadcrumbs */}
+                <div className="flex items-center space-x-2 text-sm">
+                  <BarChart3 className="w-4 h-4 text-orange-600" />
+                  <span className="text-gray-500">Dashboard</span>
+                  <span className="text-gray-400">/</span>
+                  <span className="text-blue-700 font-semibold">{menuItems.find(item => item.id === activeTab)?.label}</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                {/* Quick Actions */}
+                <button className="relative p-2 text-gray-600 hover:bg-blue-50 rounded-lg transition-all">
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                </button>
+                
+                <div className="h-8 w-px bg-gray-300"></div>
+                
+                {/* User Profile */}
+                <div className="flex items-center space-x-3 bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 rounded-lg border border-blue-200">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-md">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {userData?.full_name || currentUser?.user_metadata?.full_name || 'Official'}
+                    </p>
+                    <p className="text-xs text-gray-600">Authorized Officer</p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => user ? signOut() : console.log('Mock user')}
+                  className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-md flex items-center space-x-2"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="text-sm font-medium">Logout</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar */}
+      <div className="flex w-full">
+        {/* Enhanced Government Sidebar */}
         <AnimatePresence>
           {(sidebarOpen || (typeof window !== 'undefined' && window.innerWidth >= 1024)) && (
             <motion.aside
               initial={{ x: -300 }}
               animate={{ x: 0 }}
               exit={{ x: -300 }}
-              className="w-64 bg-white border-r border-gray-200 min-h-screen fixed lg:relative z-30"
+              className="w-80 bg-gradient-to-b from-white to-gray-50 border-r-2 border-orange-200 shadow-xl min-h-screen fixed lg:relative z-30"
             >
-              <div className="p-4 h-full flex flex-col">
-                <nav className="space-y-2 flex-1">
-                  {menuItems.map((item) => (
-                    <button
+              <div className="p-6 h-full flex flex-col">
+                {/* Sidebar Header */}
+                <div className="mb-6 pb-4 border-b-2 border-orange-200">
+                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Administrative Modules</h3>
+                  <p className="text-xs text-gray-500 mt-1">शासकीय मॉड्यूल</p>
+                </div>
+                
+                <nav className="space-y-1 flex-1 overflow-y-auto">
+                  {menuItems.map((item, index) => (
+                    <motion.button
                       key={item.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
                       onClick={() => handleMenuClick(item.id)}
-                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 group ${
                         activeTab === item.id
-                          ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-                          : 'text-gray-700 hover:bg-gray-50'
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-200 scale-105'
+                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:shadow-md'
                       }`}
                     >
-                      <item.icon className="w-5 h-5" />
-                      <span className="font-medium">{item.label}</span>
-                    </button>
+                      <div className={`p-2 rounded-lg ${
+                        activeTab === item.id
+                          ? 'bg-white/20'
+                          : 'bg-gray-100 group-hover:bg-white'
+                      }`}>
+                        <item.icon className={`w-5 h-5 ${
+                          activeTab === item.id ? 'text-white' : 'text-gray-600 group-hover:text-blue-600'
+                        }`} />
+                      </div>
+                      <span className={`font-medium text-sm ${
+                        activeTab === item.id ? 'text-white' : 'text-gray-700 group-hover:text-gray-900'
+                      }`}>{item.label}</span>
+                      {activeTab === item.id && (
+                        <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                      )}
+                    </motion.button>
                   ))}
                 </nav>
                 
-                {/* Profile at bottom */}
-                <div className="mt-auto">
-                  <div className="p-3 bg-gray-50 rounded-lg">
+                {/* Government Links at bottom */}
+                <div className="mt-auto pt-6 space-y-4 border-t-2 border-orange-200">
+                  <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-200">
+                    <h4 className="text-sm font-bold text-orange-900 mb-2">Government Resources</h4>
+                    <div className="space-y-2">
+                      <a href="#" className="flex items-center space-x-2 text-xs text-orange-800 hover:text-orange-900">
+                        <Globe className="w-3 h-3" />
+                        <span>India.gov.in</span>
+                      </a>
+                      <a href="#" className="flex items-center space-x-2 text-xs text-orange-800 hover:text-orange-900">
+                        <Globe className="w-3 h-3" />
+                        <span>Digital India</span>
+                      </a>
+                      <a href="#" className="flex items-center space-x-2 text-xs text-orange-800 hover:text-orange-900">
+                        <Globe className="w-3 h-3" />
+                        <span>MyGov.in</span>
+                      </a>
+                    </div>
+                  </div>
+                  
+                  {/* Officer Info */}
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-200 shadow-md">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                        <Shield className="w-4 h-4 text-white" />
+                      <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+                        <Shield className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {userData?.full_name || currentUser?.user_metadata?.full_name || currentUser?.email}
+                        <p className="text-sm font-bold text-gray-900 truncate">
+                          {userData?.full_name || currentUser?.user_metadata?.full_name || 'Officer'}
                         </p>
-                        <p className="text-xs text-gray-500">Government Official</p>
+                        <p className="text-xs text-green-700 font-medium">Authorized Access</p>
+                        <p className="text-xs text-gray-600">ID: GOV-{currentUser?.id?.slice(0, 8)}</p>
                       </div>
                     </div>
                   </div>
@@ -1706,8 +2065,8 @@ export default function GovernmentDashboard() {
           )}
         </AnimatePresence>
 
-        {/* Main Content */}
-        <main className="flex-1 p-6">
+        {/* Enhanced Main Content Area */}
+        <main className="flex-1 p-8 bg-gradient-to-br from-transparent to-blue-50/30">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

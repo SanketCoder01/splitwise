@@ -42,19 +42,564 @@ interface RecruiterProfile {
   phone?: string
 }
 
+function ProfileView({ recruiterData }: { recruiterData: RecruiterProfile | null }) {
+  const [completeProfileData, setCompleteProfileData] = useState<any>(null)
+  const [loadingProfile, setLoadingProfile] = useState(true)
+
+  useEffect(() => {
+    const fetchCompleteProfile = async () => {
+      try {
+        const sessionData = sessionStorage.getItem('recruiter_complete_profile')
+        if (sessionData) {
+          setCompleteProfileData(JSON.parse(sessionData))
+          setLoadingProfile(false)
+          return
+        }
+
+        if (recruiterData?.id && !recruiterData.id.startsWith('temp-')) {
+          try {
+            const { data } = await supabase
+              .from('recruiter_profiles')
+              .select('*')
+              .eq('id', recruiterData.id)
+              .single()
+
+            if (data) {
+              setCompleteProfileData(data)
+            }
+          } catch (dbError) {
+            console.warn('Could not fetch complete profile from database:', dbError)
+          }
+        }
+
+        const basicSessionData = sessionStorage.getItem('recruiter_data')
+        if (basicSessionData) {
+          const basicData = JSON.parse(basicSessionData)
+          setCompleteProfileData({
+            full_name: basicData.full_name || '',
+            company_name: basicData.company_name || '',
+            email: basicData.email || '',
+            phone: basicData.phone || '',
+            designation: basicData.designation || '',
+            employee_id: basicData.employee_id || '',
+            company_type: basicData.company_type || '',
+            industry: basicData.industry || '',
+            company_size: basicData.company_size || '',
+            website: basicData.website || '',
+            address_line1: basicData.address_line1 || '',
+            address_line2: basicData.address_line2 || '',
+            city: basicData.city || '',
+            state: basicData.state || '',
+            pincode: basicData.pincode || '',
+            internship_types: basicData.internship_types || [],
+            internship_alignment: basicData.internship_alignment || [],
+            preferred_skills: basicData.preferred_skills || '',
+            min_duration: basicData.min_duration || '',
+            max_duration: basicData.max_duration || '',
+            stipend_range: basicData.stipend_range || ''
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching complete profile:', error)
+      } finally {
+        setLoadingProfile(false)
+      }
+    }
+
+    fetchCompleteProfile()
+  }, [recruiterData])
+
+  if (loadingProfile) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Profile Overview</h2>
+        <p className="text-gray-600">View and manage your complete recruiter profile information</p>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="flex items-center space-x-6 mb-6">
+          <div className="relative">
+            {recruiterData?.profile_image ? (
+              <img
+                src={recruiterData.profile_image}
+                alt="Profile"
+                className="w-20 h-20 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center">
+                <User className="w-10 h-10 text-white" />
+              </div>
+            )}
+            <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center ${
+              recruiterData?.approval_status === 'approved' ? 'bg-green-500' :
+              recruiterData?.approval_status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
+            }`}>
+              {recruiterData?.approval_status === 'approved' ? (
+                <CheckCircle className="w-4 h-4 text-white" />
+              ) : (
+                <Clock className="w-4 h-4 text-white" />
+              )}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900">
+              {completeProfileData?.full_name || recruiterData?.full_name || 'Complete Profile'}
+            </h3>
+            <p className="text-gray-600">{completeProfileData?.company_name || recruiterData?.company_name || 'Add Company Details'}</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Status: <span className={`font-medium ${
+                recruiterData?.approval_status === 'approved' ? 'text-green-600' :
+                recruiterData?.approval_status === 'pending' ? 'text-yellow-600' : 'text-red-600'
+              }`}>
+                {recruiterData?.approval_status === 'approved' ? 'Verified & Approved' :
+                 recruiterData?.approval_status === 'pending' ? 'Pending Approval' : 'Rejected'}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+              <User className="w-5 h-5 mr-2 text-blue-600" />
+              Personal Details
+            </h4>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Full Name:</span>
+                <span className="font-medium">{completeProfileData?.full_name || 'Not provided'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Designation:</span>
+                <span className="font-medium">{completeProfileData?.designation || 'Not provided'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Employee ID:</span>
+                <span className="font-medium">{completeProfileData?.employee_id || 'Not provided'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+              <Building2 className="w-5 h-5 mr-2 text-green-600" />
+              Company Details
+            </h4>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Company Name:</span>
+                <span className="font-medium">{completeProfileData?.company_name || 'Not provided'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Industry:</span>
+                <span className="font-medium">{completeProfileData?.industry || 'Not provided'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Company Size:</span>
+                <span className="font-medium">{completeProfileData?.company_size || 'Not provided'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Type:</span>
+                <span className="font-medium">{completeProfileData?.company_type || 'Not provided'}</span>
+              </div>
+              {completeProfileData?.website && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Website:</span>
+                  <a href={completeProfileData.website} target="_blank" rel="noopener noreferrer"
+                     className="font-medium text-blue-600 hover:text-blue-700">
+                    {completeProfileData.website}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+              <Phone className="w-5 h-5 mr-2 text-purple-600" />
+              Contact Information
+            </h4>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Email:</span>
+                <span className="font-medium">{completeProfileData?.email || recruiterData?.email || 'Not provided'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Phone:</span>
+                <span className="font-medium">{completeProfileData?.phone || recruiterData?.phone || 'Not provided'}</span>
+              </div>
+              {completeProfileData?.alternate_phone && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Alternate Phone:</span>
+                  <span className="font-medium">{completeProfileData.alternate_phone}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+              <MapPin className="w-5 h-5 mr-2 text-red-600" />
+              Address
+            </h4>
+            <div className="space-y-3">
+              <div>
+                <span className="text-gray-600 block">Address:</span>
+                <span className="font-medium">
+                  {completeProfileData?.address_line1 || 'Not provided'}
+                  {completeProfileData?.address_line2 && `, ${completeProfileData.address_line2}`}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">City:</span>
+                <span className="font-medium">{completeProfileData?.city || 'Not provided'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">State:</span>
+                <span className="font-medium">{completeProfileData?.state || 'Not provided'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Pincode:</span>
+                <span className="font-medium">{completeProfileData?.pincode || 'Not provided'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+            <Award className="w-5 h-5 mr-2 text-orange-600" />
+            Internship Preferences
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h5 className="font-medium text-gray-800 mb-2">Internship Types</h5>
+              <div className="flex flex-wrap gap-2">
+                {completeProfileData?.internship_types?.length > 0 ? (
+                  completeProfileData.internship_types.map((type: string, index: number) => (
+                    <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                      {type}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">None selected</span>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h5 className="font-medium text-gray-800 mb-2">Internship Alignment</h5>
+              <div className="flex flex-wrap gap-2">
+                {completeProfileData?.internship_alignment?.length > 0 ? (
+                  completeProfileData.internship_alignment.map((alignment: string, index: number) => (
+                    <span key={index} className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                      {alignment}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">None selected</span>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h5 className="font-medium text-gray-800 mb-2">Preferred Skills</h5>
+              <p className="text-gray-700 text-sm">{completeProfileData?.preferred_skills || 'Not specified'}</p>
+            </div>
+
+            <div>
+              <h5 className="font-medium text-gray-800 mb-2">Duration & Stipend</h5>
+              <div className="space-y-1 text-sm">
+                <p className="text-gray-700">
+                  <span className="text-gray-600">Duration:</span> {completeProfileData?.min_duration || '0'} - {completeProfileData?.max_duration || '0'} months
+                </p>
+                <p className="text-gray-700">
+                  <span className="text-gray-600">Stipend:</span> {completeProfileData?.stipend_range || 'Not specified'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-6 border-t">
+          <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+            <FileText className="w-5 h-5 mr-2 text-indigo-600" />
+            Documents Submitted
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <div>
+                <p className="font-medium text-gray-900">Company Registration</p>
+                <p className="text-sm text-gray-600">Submitted</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <div>
+                <p className="font-medium text-gray-900">Authorization Letter</p>
+                <p className="text-sm text-gray-600">Submitted</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <div>
+                <p className="font-medium text-gray-900">ID Proof</p>
+                <p className="text-sm text-gray-600">Submitted</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {recruiterData?.approval_status === 'pending' && (
+          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Clock className="w-5 h-5 text-yellow-600" />
+              <div>
+                <h4 className="font-medium text-yellow-900">Waiting for Government Approval</h4>
+                <p className="text-sm text-yellow-700">
+                  Your profile has been submitted for verification. You'll be able to post internships once approved by government officials.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {recruiterData?.approval_status === 'approved' && (
+          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <div>
+                <h4 className="font-medium text-green-900">Profile Approved!</h4>
+                <p className="text-sm text-green-700">
+                  Your profile has been verified and approved. You can now post internships and access all dashboard features.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function RecruiterDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [showPostModal, setShowPostModal] = useState(false)
-  const [internships, setInternships] = useState<InternshipPosting[]>([])
+  const [internships, setInternships] = useState<InternshipPosting[]>([])       
   const [loading, setLoading] = useState(true)
-  const [recruiterData, setRecruiterData] = useState<RecruiterProfile | null>(null)
+  const [recruiterData, setRecruiterData] = useState<RecruiterProfile | null>(null)                                                                             
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showProfileSteps, setShowProfileSteps] = useState(false)
+  const [completeProfileData, setCompleteProfileData] = useState<any>(null)
+  const [loadingProfile, setLoadingProfile] = useState(true)
 
   useEffect(() => {
     fetchRecruiterData()
     fetchInternships()
   }, [])
+
+  // Real-time subscription for approval status and notifications
+  useEffect(() => {
+    if (!recruiterData?.id || recruiterData.id.startsWith('temp-')) {
+      return
+    }
+
+    // Subscribe to profile changes (approval/rejection)
+    const profileSubscription = supabase
+      .channel(`recruiter-profile-${recruiterData.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'recruiter_profiles',
+          filter: `id=eq.${recruiterData.id}`
+        },
+        (payload) => {
+          const newProfile = payload.new as any
+          console.log('Profile updated:', newProfile)
+
+          // Check if approval status changed
+          if (newProfile.approval_status !== recruiterData.approval_status) {
+            if (newProfile.approval_status === 'approved') {
+              // Profile approved - show success message
+              toast.success('🎉 Congratulations! Your profile has been approved!', {
+                duration: 6000,
+                icon: '✅',
+                style: {
+                  background: '#10B981',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  padding: '16px',
+                }
+              })
+
+              // Update local state
+              setRecruiterData((prev: any) => ({
+                ...prev,
+                approval_status: 'approved'
+              }))
+
+              // Update session storage
+              const sessionData = sessionStorage.getItem('recruiter_data')
+              if (sessionData) {
+                const data = JSON.parse(sessionData)
+                data.approval_status = 'approved'
+                sessionStorage.setItem('recruiter_data', JSON.stringify(data))
+              }
+
+              // Refresh the page to unlock features
+              setTimeout(() => {
+                window.location.reload()
+              }, 3000)
+
+            } else if (newProfile.approval_status === 'rejected') {
+              // Profile rejected - show message and logout
+              toast.error('❌ Your profile has been rejected. You will be logged out.', {
+                duration: 5000,
+                icon: '🚫',
+                style: {
+                  background: '#EF4444',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  padding: '16px',
+                }
+              })
+
+              // Clear session storage and redirect to login after 3 seconds
+              setTimeout(() => {
+                sessionStorage.removeItem('recruiter_data')
+                sessionStorage.removeItem('recruiter_complete_profile')
+                window.location.href = '/recruiter-login'
+              }, 3000)
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    // Subscribe to notifications
+    const notificationsSubscription = supabase
+      .channel(`recruiter-notifications-${recruiterData.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'recruiter_notifications',
+          filter: `recruiter_id=eq.${recruiterData.id}`
+        },
+        (payload) => {
+          const notification = payload.new as any
+          console.log('New notification:', notification)
+
+          // Show toast notification
+          if (notification.type === 'approval') {
+            toast.success(notification.message, {
+              duration: 6000,
+              icon: '🎉'
+            })
+          } else if (notification.type === 'rejection') {
+            toast.error(notification.message, {
+              duration: 5000,
+              icon: '❌'
+            })
+          } else {
+            toast(notification.message, {
+              duration: 4000
+            })
+          }
+        }
+      )
+      .subscribe()
+
+    // Cleanup subscriptions
+    return () => {
+      profileSubscription.unsubscribe()
+      notificationsSubscription.unsubscribe()
+    }
+  }, [recruiterData?.id, recruiterData?.approval_status])
+
+  // Fetch complete profile data when viewing profile tab
+  useEffect(() => {
+    const fetchCompleteProfile = async () => {
+      if (activeTab !== 'profile-view') {
+        return
+      }
+
+      setLoadingProfile(true)
+      try {
+        // First try to get from session storage (saved during profile completion)                                                                            
+        const sessionData = sessionStorage.getItem('recruiter_complete_profile')                                                                              
+        if (sessionData) {
+          setCompleteProfileData(JSON.parse(sessionData))
+          setLoadingProfile(false)
+          return
+        }
+
+        // If not in session, try to fetch from database
+        if (recruiterData?.id && !recruiterData.id.startsWith('temp-')) {     
+          try {
+            const { data, error } = await supabase
+              .from('recruiter_profiles')
+              .select('*')
+              .eq('id', recruiterData.id)
+              .single()
+
+            if (data && !error) {
+              setCompleteProfileData(data)
+            }
+          } catch (dbError) {
+            console.warn('Could not fetch complete profile from database:', dbError)                                                                          
+          }
+        }
+
+        // If still no data, try to get basic info from session
+        const basicSessionData = sessionStorage.getItem('recruiter_data')     
+        if (basicSessionData) {
+          const basicData = JSON.parse(basicSessionData)
+          setCompleteProfileData({
+            full_name: basicData.full_name || '',
+            company_name: basicData.company_name || '',
+            email: basicData.email || '',
+            phone: basicData.phone || '',
+            designation: basicData.designation || '',
+            employee_id: basicData.employee_id || '',
+            company_type: basicData.company_type || '',
+            industry: basicData.industry || '',
+            company_size: basicData.company_size || '',
+            website: basicData.website || '',
+            address_line1: basicData.address_line1 || '',
+            address_line2: basicData.address_line2 || '',
+            city: basicData.city || '',
+            state: basicData.state || '',
+            pincode: basicData.pincode || '',
+            internship_types: basicData.internship_types || [],
+            internship_alignment: basicData.internship_alignment || [],       
+            preferred_skills: basicData.preferred_skills || '',
+            min_duration: basicData.min_duration || '',
+            max_duration: basicData.max_duration || '',
+            stipend_range: basicData.stipend_range || ''
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching complete profile:', error)
+      } finally {
+        setLoadingProfile(false)
+      }
+    }
+
+    fetchCompleteProfile()
+  }, [activeTab, recruiterData])
 
   const fetchRecruiterData = async () => {
     try {
@@ -64,30 +609,8 @@ export default function RecruiterDashboard() {
       if (recruiterSessionData) {
         const sessionData = JSON.parse(recruiterSessionData)
 
-        // Check if session data has completed profile (from dev mode)
-        if (sessionData.profile_completed) {
-          // Use session data directly if profile is completed
-          const recruiterData: RecruiterProfile = {
-            id: sessionData.id || 'temp-' + (sessionData.organization_id || 'unknown'),
-            full_name: sessionData.full_name || '',
-            company_name: sessionData.company_name || '',
-            profile_image: undefined,
-            profile_completed: sessionData.profile_completed || false,
-            profile_step: sessionData.profile_step || 6,
-            approval_status: sessionData.approval_status || 'pending',
-            email: sessionData.email || `hr@${sessionData.organization_id?.toLowerCase() || 'company'}.com`,
-            phone: sessionData.phone || ''
-          }
-          setRecruiterData(recruiterData)
-
-          // Profile is completed - redirect to dashboard if currently on profile-steps
-          if (activeTab === 'profile-steps') {
-            setActiveTab('dashboard')
-          }
-          return
-        }
-
-        // Try to fetch from Supabase for incomplete profiles
+        // ALWAYS try to fetch from Supabase first for the most recent data
+        console.log('📊 Fetching recruiter data from Supabase...')
         try {
           const { data: profileData, error } = await supabase
             .from('recruiter_profiles')
@@ -96,7 +619,23 @@ export default function RecruiterDashboard() {
             .single()
 
           if (profileData && !error) {
-            // Use Supabase data if available
+            console.log('✅ Profile data loaded from Supabase:', profileData)
+            
+            // Update session storage with fresh data
+            const updatedSessionData = {
+              ...sessionData,
+              id: profileData.id,
+              full_name: profileData.full_name,
+              company_name: profileData.company_name,
+              email: profileData.email,
+              phone: profileData.phone,
+              profile_completed: profileData.profile_completed,
+              profile_step: profileData.profile_step,
+              approval_status: profileData.approval_status
+            }
+            sessionStorage.setItem('recruiter_data', JSON.stringify(updatedSessionData))
+
+            // Use Supabase data
             const recruiterData: RecruiterProfile = {
               id: profileData.id,
               full_name: profileData.full_name,
@@ -115,11 +654,16 @@ export default function RecruiterDashboard() {
               setActiveTab('profile-steps')
               setShowProfileSteps(true)
             } else {
-              // Profile is completed - redirect to dashboard if currently on profile-steps
-              if (activeTab === 'profile-steps') {
-                setActiveTab('dashboard')
-              }
+              // Profile is completed - show dashboard
+              console.log('✅ Profile completed! Showing dashboard with pending approval status')
+              setActiveTab('dashboard')
+              setShowProfileSteps(false)
+              toast.success('Profile submitted successfully! Awaiting government approval.', {
+                duration: 5000,
+                icon: '🎉'
+              })
             }
+            return // Exit early after successful Supabase fetch
           } else {
             // Supabase failed, use session data as fallback
             const initialData: RecruiterProfile = {
@@ -614,75 +1158,7 @@ export default function RecruiterDashboard() {
   }
 
   function renderProfile() {
-    // Fetch complete profile data from session storage or database
-    const [completeProfileData, setCompleteProfileData] = useState<any>(null)
-    const [loadingProfile, setLoadingProfile] = useState(true)
-
-    useEffect(() => {
-      const fetchCompleteProfile = async () => {
-        try {
-          // First try to get from session storage (saved during profile completion)
-          const sessionData = sessionStorage.getItem('recruiter_complete_profile')
-          if (sessionData) {
-            setCompleteProfileData(JSON.parse(sessionData))
-            setLoadingProfile(false)
-            return
-          }
-
-          // If not in session, try to fetch from database
-          if (recruiterData?.id && !recruiterData.id.startsWith('temp-')) {
-            try {
-              const { data, error } = await supabase
-                .from('recruiter_profiles')
-                .select('*')
-                .eq('id', recruiterData.id)
-                .single()
-
-              if (data && !error) {
-                setCompleteProfileData(data)
-              }
-            } catch (dbError) {
-              console.warn('Could not fetch complete profile from database:', dbError)
-            }
-          }
-
-          // If still no data, try to get basic info from session
-          const basicSessionData = sessionStorage.getItem('recruiter_data')
-          if (basicSessionData) {
-            const basicData = JSON.parse(basicSessionData)
-            setCompleteProfileData({
-              full_name: basicData.full_name || '',
-              company_name: basicData.company_name || '',
-              email: basicData.email || '',
-              phone: basicData.phone || '',
-              designation: basicData.designation || '',
-              employee_id: basicData.employee_id || '',
-              company_type: basicData.company_type || '',
-              industry: basicData.industry || '',
-              company_size: basicData.company_size || '',
-              website: basicData.website || '',
-              address_line1: basicData.address_line1 || '',
-              address_line2: basicData.address_line2 || '',
-              city: basicData.city || '',
-              state: basicData.state || '',
-              pincode: basicData.pincode || '',
-              internship_types: basicData.internship_types || [],
-              internship_alignment: basicData.internship_alignment || [],
-              preferred_skills: basicData.preferred_skills || '',
-              min_duration: basicData.min_duration || '',
-              max_duration: basicData.max_duration || '',
-              stipend_range: basicData.stipend_range || ''
-            })
-          }
-        } catch (error) {
-          console.error('Error fetching complete profile:', error)
-        } finally {
-          setLoadingProfile(false)
-        }
-      }
-
-      fetchCompleteProfile()
-    }, [recruiterData])
+    // Profile data is now fetched in the parent component via useEffect
 
     if (loadingProfile) {
       return (
